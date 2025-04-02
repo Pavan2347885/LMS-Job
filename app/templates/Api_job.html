@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Portal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .container {
+            flex: 1;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background-color: #007bff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            color: white !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        /* Attractive Banner Section */
+        .hero-banner {
+            background: linear-gradient(135deg, #007bff 0%, #00b4ff 100%);
+            color: white;
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+        
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+            background-size: cover;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-title {
+            font-weight: 800;
+            font-size: 2.8rem;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+        
+        .search-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .search-input {
+            border: none;
+            border-bottom: 2px solid #e9ecef;
+            border-radius: 0;
+            padding-left: 0;
+            background: transparent;
+        }
+        
+        .search-input:focus {
+            box-shadow: none;
+            border-bottom-color: #007bff;
+        }
+        
+        .search-btn {
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+        
+        .stats-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
+        
+        /* Job Cards (Preserved Style) */
+        .job-card {
+            border-radius: 10px;
+            border-top: 4px solid;
+            transition: all 0.3s ease;
+            margin-bottom: 25px;
+            height: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Company Logos */
+        .company-logos {
+            padding: 30px 0;
+            background: white;
+        }
+        
+        .company-logos img {
+            height: 30px;
+            opacity: 0.7;
+            transition: all 0.3s;
+            margin: 0 20px;
+        }
+        
+        .company-logos img:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        
+        /* Footer */
+        footer {
+            background-color: #343a40;
+            color: white;
+            padding: 30px 0;
+            margin-top: 50px;
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-banner {
+                padding: 60px 0;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            
+            <a class="navbar-brand" href="#"><i class="bi bi-briefcase-fill logo-icon" style="color:white padding-right:1px"> </i>JobPortal</a>
+            <a class="navbar-brand" href="{% url 'job_list'%}">Back</a>
+        </div>
+    </nav>
+
+    <!-- Attractive Banner Section -->
+    <section class="hero-banner">
+        <div class="container hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <span class="badge bg-white text-primary mb-3 px-3 py-2 fw-bold">10,000+ Jobs Available</span>
+                    <h1 class="hero-title">Find Your Perfect Career Match</h1>
+                    <p class="hero-subtitle">Connect with top employers and discover opportunities that align with your skills and ambitions.</p>
+                    
+                    <div class="d-flex flex-wrap align-items-center">
+                        <span class="me-2 text-white-50">Trending searches:</span>
+                        <a href="#" class="badge bg-white bg-opacity-25 text-white me-2 mb-2">Software Engineer</a>
+                        <a href="#" class="badge bg-white bg-opacity-25 text-white me-2 mb-2">Data Analyst</a>
+                        <a href="#" class="badge bg-white bg-opacity-25 text-white me-2 mb-2">UX Designer</a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="search-card">
+                        <h5 class="mb-4 text-center">Find Your Dream Job</h5>
+                        <form>
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control search-input" placeholder="Job title or keywords">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0">
+                                        <i class="bi bi-geo-alt"></i>
+                                    </span>
+                                    <select class="form-select search-input">
+                                        <option selected>Any Location</option>
+                                        <option>Bangalore</option>
+                                        <option>Mumbai</option>
+                                        <option>Delhi</option>
+                                        <option>Hyderabad</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary search-btn w-100">
+                                <i class="bi bi-search me-2"></i>Search Jobs
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trusted Companies -->
+    <div class="company-logos">
+        <div class="container">
+            <div class="text-center mb-4">
+                <p class="text-muted mb-1">Trusted by leading companies worldwide</p>
+            </div>
+            <div class="d-flex flex-wrap justify-content-center align-items-center">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon">
+                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/0/04/Facebook_f_logo_%282021%29.svg/768px-Facebook_f_logo_%282021%29.svg.png?20210818083032" alt="Facebook">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Sumsang_Logo.svg/1200px-Sumsang_Logo.svg.png?20140903164031" alt="Samsung">
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Listings -->
+    <div class="container my-5">
+        <h2 class="text-center mb-5">Latest Job Openings</h2>
+        
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading jobs...</p>
+        </div>
+        
+        <!-- Job Listings Container -->
+        <div class="row" id="jobList">
+            <!-- Jobs will be loaded here -->
+        </div>
+        
+        <!-- Pagination -->
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item"><a class="page-link" href="#" id="prevPage">Previous</a></li>
+                <li class="page-item"><span class="page-link" id="pageNumber">1</span></li>
+                <li class="page-item"><a class="page-link" href="#" id="nextPage">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>JobPortal</h5>
+                    <p>Your trusted platform for finding the best job opportunities.</p>
+                </div>
+                
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Browse Jobs</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">About Us</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-4">
+                    <h5>Contact</h5>
+                    <p><i class="bi bi-envelope me-2"></i>contact@jobportal.com</p>
+                    <p><i class="bi bi-telephone me-2"></i>+1 (123) 456-7890</p>
+                </div>
+            </div>
+            
+            <hr class="my-4 bg-light">
+            
+            <div class="text-center">
+                <p class="mb-0">&copy; 2023 JobPortal. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        $(document).ready(function () {
+            let jobsData = [];
+            let currentPage = 1;
+            const jobsPerPage = 6;
+            const borderColors = [
+  "#007bff", "#ffc107", "#dc3545", "#28a745", "#17a2b8", "#6f42c1",  
+  "#ff5733", "#33ff57", "#ff33a8", "#a833ff", "#33a8ff", "#ffbb33",  
+  "#ff4444", "#44ff44", "#4444ff", "#ff8800", "#8800ff", "#00ff88"
+];
+
+            let apiKey, apiHost;
+        
+            function fetchApiKeys() {
+                return $.ajax({
+                    url: "/get-api-keys/",
+                    method: "GET",
+                    success: function (response) {
+                        console.log("API keys fetched:", response.RAPIDAPI_KEY, response.RAPIDAPI_HOST);
+                        apiKey = response.RAPIDAPI_KEY;
+                        apiHost = response.RAPIDAPI_HOST;
+
+                        console.log("Fetched API keys:", apiKey, apiHost);
+                        if (apiKey && apiHost) {
+                            fetchJobs(); // Call fetchJobs only after keys are set
+                        } else {
+                            console.error("Invalid API keys received.");
+                            // Fallback to sample data if API keys are invalid
+                            loadSampleJobs();
+                        }
+                    },
+                    error: function () {
+                        console.error("Error fetching API keys.");
+                        $("#jobList").html('<div class="text-center text-danger fw-bold mt-3 h5">Error fetching API keys</div>');
+                        // Fallback to sample data if API fails
+                        loadSampleJobs();
+                    }
+                });
+            }
+        
+            function fetchJobs() {
+                if (!apiKey || !apiHost) {
+                    console.error("API keys not set. Aborting API call.");
+                    loadSampleJobs();
+                    return;
+                }
+        
+                $("#loadingSpinner").show();
+                console.log("Fetching jobs with API key:", apiKey);
+        
+                $.ajax({
+                    url: "https://jsearch.p.rapidapi.com/search",
+                    method: "GET",
+                    data: {
+                        query: "developer jobs in India",
+                        page: 1,
+                        num_pages: 2,
+                        country: "IN",
+                        date_posted: "all"
+                    },
+                    headers: {
+                        "x-rapidapi-key": apiKey,
+                        "x-rapidapi-host": apiHost
+                    },
+                    success: function (response) {
+                        if (!response.data || response.data.length === 0) {
+                            console.warn("No job data received.");
+                            $("#jobList").html('<div class="text-center text-warning fw-bold mt-3 h5">No jobs found</div>');
+                            loadSampleJobs();
+                        } else {
+                            jobsData = response.data;
+                            // Store jobs in DB
+                            storeJobsInDB(jobsData);
+                            displayJobs();
+                            console.log("Fetched jobs:", jobsData);
+                        }
+        
+                        $("#loadingSpinner").hide();
+                    },
+                    error: function (xhr) {
+                        console.error("Error fetching job data:", xhr.responseText);
+                        $("#jobList").html('<div class="text-center text-danger fw-bold mt-3 h5">Error fetching job data</div>');
+                        $("#loadingSpinner").hide();
+                        loadSampleJobs();
+                    }
+                });
+            }
+            
+            // Store jobs in database
+            function storeJobsInDB(jobs) {
+                $.ajax({
+                    url: "/store-jobs/",
+                    method: "POST",
+                    data: JSON.stringify({ jobs: jobs }),
+                    contentType: "application/json",
+                    success: function(response) {
+                        console.log("Jobs stored successfully:", response);
+                    },
+                    error: function(xhr) {
+                        console.error("Error storing jobs:", xhr.responseText);
+                    }
+                });
+            }
+            
+            // Fallback sample data
+            function loadSampleJobs() {
+                jobsData = [
+                    {
+                        job_title: "Senior Software Engineer",
+                        employer_name: "Tech Solutions Inc.",
+                        job_employment_type: "Full-time",
+                        job_city: "Bangalore",
+                        job_country: "India",
+                        job_description: "We're looking for an experienced software engineer to join our team working on cutting-edge web applications.",
+                        salary_min: "1,200,000",
+                        salary_max: "1,800,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    },
+                    {
+                        job_title: "UX/UI Designer",
+                        employer_name: "Creative Designs LLC",
+                        job_employment_type: "Contract",
+                        job_city: "Remote",
+                        job_country: "India",
+                        job_description: "Join our design team to create beautiful and intuitive user interfaces for our clients.",
+                        salary_min: "800,000",
+                        salary_max: "1,200,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    },
+                    {
+                        job_title: "Data Scientist",
+                        employer_name: "Analytics Pro",
+                        job_employment_type: "Full-time",
+                        job_city: "Hyderabad",
+                        job_country: "India",
+                        job_description: "Use your data analysis skills to help us uncover insights and drive business decisions.",
+                        salary_min: "1,500,000",
+                        salary_max: "2,200,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    },
+                    {
+                        job_title: "Marketing Manager",
+                        employer_name: "Global Brands",
+                        job_employment_type: "Full-time",
+                        job_city: "Mumbai",
+                        job_country: "India",
+                        job_description: "Lead our marketing team and develop strategies to grow our brand presence.",
+                        salary_min: "900,000",
+                        salary_max: "1,300,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    },
+                    {
+                        job_title: "DevOps Engineer",
+                        employer_name: "Cloud Systems",
+                        job_employment_type: "Full-time",
+                        job_city: "Pune",
+                        job_country: "India",
+                        job_description: "Implement and maintain our CI/CD pipelines and cloud infrastructure.",
+                        salary_min: "1,400,000",
+                        salary_max: "2,000,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    },
+                    {
+                        job_title: "Product Manager",
+                        employer_name: "Innovate Tech",
+                        job_employment_type: "Full-time",
+                        job_city: "Delhi",
+                        job_country: "India",
+                        job_description: "Guide product development from conception to launch and beyond.",
+                        salary_min: "1,600,000",
+                        salary_max: "2,400,000",
+                        salary_currency: "₹",
+                        job_apply_link: "#"
+                    }
+                ];
+                
+                displayJobs();
+            }
+        
+            function displayJobs() {
+                let jobListHtml = "";
+                let start = (currentPage - 1) * jobsPerPage;
+                let end = start + jobsPerPage;
+                let paginatedJobs = jobsData.slice(start, end);
+        
+                paginatedJobs.forEach((job, index) => {
+                    const borderColor = borderColors[index % borderColors.length];
+                    console.log("Job:", job, "Border Color:", borderColor);
+                    jobListHtml += `
+                        <div class="col-lg-4 col-md-6 mb-4">
+                              <div class="card job-card" style="border-top-color: ${borderColor}">
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <div class="mb-1">
+                                        <span class="badge bg-light text-dark mb-2">${job.job_employment_type || "Full-time"}</span>
+                                    </div>
+                                    <h5 class="card-title fw-bold text-primary mb-2">${job.job_title}</h5>
+                                    <h6 class="card-subtitle mb-3 text-muted d-flex align-items-center">
+                                        <i class="bi bi-building me-2"></i>${job.employer_name}
+                                    </h6>
+                                    <div class="card-text mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-geo-alt-fill text-secondary me-2"></i>
+                                            <span>${job.job_city}, ${job.job_country}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-cash-stack text-secondary me-2"></i>
+                                            <span>${job.salary_currency || ""} ${job.salary_min || "Not Revealed"} - ${job.salary_max || ""}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-muted description-container mb-3" style="max-height: 60px; overflow: hidden;">
+                                        ${job.job_description || "No description available."}
+                                    </div>
+                                    <a href="${job.job_apply_link}" target="_blank" class="btn btn-primary mt-auto w-100">Apply Now</a>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+        
+                $("#jobList").html(jobListHtml);
+                $("#pageNumber").text(currentPage);
+                $("#prevPage").toggleClass("disabled", currentPage === 1);
+                $("#nextPage").toggleClass("disabled", end >= jobsData.length);
+            }
+        
+            $("#prevPage").click(function (e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayJobs();
+                }
+            });
+        
+            $("#nextPage").click(function (e) {
+                e.preventDefault();
+                if ((currentPage * jobsPerPage) < jobsData.length) {
+                    currentPage++;
+                    displayJobs();
+                }
+            });
+            
+            // Initialize
+            fetchApiKeys();
+        });
+    </script>
+</body>
+</html>
