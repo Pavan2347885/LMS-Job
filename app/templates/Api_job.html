@@ -9,6 +9,30 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
     <style>
+        /* Job Description Styles */
+        .job-description-container {
+            position: relative;
+            overflow: hidden;
+            line-height: 1.5;
+            max-height: 6em; /* 4 lines (1.5em line-height * 4) */
+        }
+        .job-description-container.expanded {
+            max-height: none;
+        }
+        .read-more-btn {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, white 50%);
+            padding-left: 20px;
+            color: #007bff;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .read-more-btn:hover {
+            text-decoration: underline;
+        }
         /* General Styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -329,93 +353,171 @@
 
     <script>
         $(document).ready(function () {
+            // Configuration constants
+            const JOBS_PER_PAGE = 6;
+            const FETCH_INTERVAL = 86400000; // 24 hours in milliseconds
+            const CHECK_INTERVAL = 86400000; // 24 hours in milliseconds
+            const BORDER_COLORS = [
+                "#007bff", "#ffc107", "#dc3545", "#28a745", "#17a2b8", "#6f42c1",  
+                "#ff5733", "#33ff57", "#ff33a8", "#a833ff", "#33a8ff", "#ffbb33",  
+                "#ff4444", "#44ff44", "#4444ff", "#ff8800", "#8800ff", "#00ff88"
+            ];
+    
+            // Application state
             let jobsData = [];
             let currentPage = 1;
-            const jobsPerPage = 6;
-            const borderColors = [
-  "#007bff", "#ffc107", "#dc3545", "#28a745", "#17a2b8", "#6f42c1",  
-  "#ff5733", "#33ff57", "#ff33a8", "#a833ff", "#33a8ff", "#ffbb33",  
-  "#ff4444", "#44ff44", "#4444ff", "#ff8800", "#8800ff", "#00ff88"
-];
-
             let apiKey, apiHost;
-        
+            let lastFetchTime = parseInt(localStorage.getItem('lastFetchTime')) || 0;
+            let nextFetchTimer = null;
+    
+            // Initialize the application
+            function init() {
+                fetchApiKeys().then(() => {
+                    fetchJobsFromDB();
+                    checkAndFetchJobs();
+                    startFetchInterval();
+                });
+            }
+    
+            // Fetch API keys from server
             function fetchApiKeys() {
                 return $.ajax({
                     url: "/get-api-keys/",
                     method: "GET",
                     success: function (response) {
-                        console.log("API keys fetched:", response.RAPIDAPI_KEY, response.RAPIDAPI_HOST);
                         apiKey = response.RAPIDAPI_KEY;
                         apiHost = response.RAPIDAPI_HOST;
-
-                        console.log("Fetched API keys:", apiKey, apiHost);
-                        if (apiKey && apiHost) {
-                            fetchJobs(); // Call fetchJobs only after keys are set
-                        } else {
-                            console.error("Invalid API keys received.");
-                            // Fallback to sample data if API keys are invalid
-                            loadSampleJobs();
-                        }
+                        console.log("API keys initialized");
                     },
                     error: function () {
-                        console.error("Error fetching API keys.");
-                        $("#jobList").html('<div class="text-center text-danger fw-bold mt-3 h5">Error fetching API keys</div>');
-                        // Fallback to sample data if API fails
+                        console.error("Error fetching API keys");
+                        showError("Error fetching API keys");
                         loadSampleJobs();
                     }
                 });
             }
-        
-            function fetchJobs() {
+    
+            // Fetch jobs from our database
+            function fetchJobsFromDB() {
+                console.log("Fetching jobs from database");
+                $("#loadingSpinner").show();
+    
+                $.ajax({
+                    url: "/get-jobs/",
+                    method: "GET",
+                    success: function (response) {
+                        if (response.status === 'success' && response.data.length > 0) {
+                            jobsData = response.data;
+                            console.log(`Loaded ${jobsData.length} jobs from database`);
+                            displayJobs();
+                        } else {
+                            console.log("No jobs in database, will fetch from API");
+                            fetchJobsFromAPI();
+                        }
+                        $("#loadingSpinner").hide();
+                    },
+                    error: function (xhr) {
+                        console.error("Error fetching from DB:", xhr.responseText);
+                        $("#loadingSpinner").hide();
+                        loadSampleJobs();
+                    }
+                });
+            }
+    
+            // Original function to fetch from external API
+            function fetchJobsFromAPI() {
                 if (!apiKey || !apiHost) {
-                    console.error("API keys not set. Aborting API call.");
+                    console.error("API credentials missing");
                     loadSampleJobs();
                     return;
                 }
-        
+    
+                console.log(`Fetching jobs from external API at ${new Date().toLocaleTimeString()}`);
                 $("#loadingSpinner").show();
-                console.log("Fetching jobs with API key:", apiKey);
-        
+    
                 $.ajax({
                     url: "https://jsearch.p.rapidapi.com/search",
                     method: "GET",
                     data: {
-                        query: "developer jobs in India",
+                        query: "Developer jobs in India",
                         page: 1,
                         num_pages: 2,
                         country: "IN",
-                        date_posted: "all"
+                        date_posted: "all",
+                        job_requirements: "under_3_years_experience,no_experience,no_degree",
+                        employment_types: "FULLTIME,PARTTIME,CONTRACTOR,INTERN"
                     },
                     headers: {
                         "x-rapidapi-key": apiKey,
                         "x-rapidapi-host": apiHost
                     },
                     success: function (response) {
-                        if (!response.data || response.data.length === 0) {
-                            console.warn("No job data received.");
-                            $("#jobList").html('<div class="text-center text-warning fw-bold mt-3 h5">No jobs found</div>');
-                            loadSampleJobs();
-                        } else {
-                            jobsData = response.data;
-                            // Store jobs in DB
-                            storeJobsInDB(jobsData);
-                            displayJobs();
-                            console.log("Fetched jobs:", jobsData);
-                        }
-        
-                        $("#loadingSpinner").hide();
+                        handleFetchSuccess(response);
                     },
                     error: function (xhr) {
-                        console.error("Error fetching job data:", xhr.responseText);
-                        $("#jobList").html('<div class="text-center text-danger fw-bold mt-3 h5">Error fetching job data</div>');
-                        $("#loadingSpinner").hide();
-                        loadSampleJobs();
+                        handleFetchError(xhr);
                     }
                 });
             }
-            
-            // Store jobs in database
+    
+            // Main function to check if we need to fetch from API
+            function checkAndFetchJobs() {
+                const now = Date.now();
+                const timeSinceLastFetch = now - lastFetchTime;
+    
+                if (lastFetchTime === 0 || timeSinceLastFetch >= FETCH_INTERVAL) {
+                    console.log("Fetching jobs from API immediately");
+                    fetchJobsFromAPI();
+                } else {
+                    const timeUntilNextFetch = FETCH_INTERVAL - timeSinceLastFetch;
+                    console.log(`Waiting ${Math.round(timeUntilNextFetch/1000)} seconds until next API fetch`);
+                }
+            }
+    
+            // Start the periodic check for API fetch intervals
+            function startFetchInterval() {
+                // Clear any existing interval
+                if (nextFetchTimer) {
+                    clearInterval(nextFetchTimer);
+                }
+                
+                // Set up new interval
+                nextFetchTimer = setInterval(() => {
+                    const now = Date.now();
+                    if (now - lastFetchTime >= FETCH_INTERVAL) {
+                        console.log("Interval check triggered - fetching jobs from API");
+                        fetchJobsFromAPI();
+                    }
+                }, CHECK_INTERVAL);
+            }
+    
+            function handleFetchSuccess(response) {
+                // Update last fetch time
+                lastFetchTime = Date.now();
+                localStorage.setItem('lastFetchTime', lastFetchTime.toString());
+                
+                if (!response.data || response.data.length === 0) {
+                    console.warn("Empty response received from API");
+                    showWarning("No jobs found in API response");
+                    return;
+                }
+    
+                const apiJobs = response.data.slice(0, 20);
+                console.log(`Successfully fetched ${apiJobs.length} jobs from API`);
+                
+                // Store the API jobs in our database
+                storeJobsInDB(apiJobs);
+                
+                // Then refresh our display from the database
+                fetchJobsFromDB();
+            }
+    
+            function handleFetchError(xhr) {
+                console.error("API Error:", xhr.responseText);
+                showError("Error fetching job data from API");
+                $("#loadingSpinner").hide();
+            }
+    
             function storeJobsInDB(jobs) {
                 $.ajax({
                     url: "/store-jobs/",
@@ -423,106 +525,33 @@
                     data: JSON.stringify({ jobs: jobs }),
                     contentType: "application/json",
                     success: function(response) {
-                        console.log("Jobs stored successfully:", response);
+                        console.log("Jobs stored in DB:", response.message);
                     },
                     error: function(xhr) {
-                        console.error("Error storing jobs:", xhr.responseText);
+                        console.error("DB Storage Error:", xhr.responseText);
                     }
                 });
             }
-            
-            // Fallback sample data
-            function loadSampleJobs() {
-                jobsData = [
-                    {
-                        job_title: "Senior Software Engineer",
-                        employer_name: "Tech Solutions Inc.",
-                        job_employment_type: "Full-time",
-                        job_city: "Bangalore",
-                        job_country: "India",
-                        job_description: "We're looking for an experienced software engineer to join our team working on cutting-edge web applications.",
-                        salary_min: "1,200,000",
-                        salary_max: "1,800,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    },
-                    {
-                        job_title: "UX/UI Designer",
-                        employer_name: "Creative Designs LLC",
-                        job_employment_type: "Contract",
-                        job_city: "Remote",
-                        job_country: "India",
-                        job_description: "Join our design team to create beautiful and intuitive user interfaces for our clients.",
-                        salary_min: "800,000",
-                        salary_max: "1,200,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    },
-                    {
-                        job_title: "Data Scientist",
-                        employer_name: "Analytics Pro",
-                        job_employment_type: "Full-time",
-                        job_city: "Hyderabad",
-                        job_country: "India",
-                        job_description: "Use your data analysis skills to help us uncover insights and drive business decisions.",
-                        salary_min: "1,500,000",
-                        salary_max: "2,200,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    },
-                    {
-                        job_title: "Marketing Manager",
-                        employer_name: "Global Brands",
-                        job_employment_type: "Full-time",
-                        job_city: "Mumbai",
-                        job_country: "India",
-                        job_description: "Lead our marketing team and develop strategies to grow our brand presence.",
-                        salary_min: "900,000",
-                        salary_max: "1,300,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    },
-                    {
-                        job_title: "DevOps Engineer",
-                        employer_name: "Cloud Systems",
-                        job_employment_type: "Full-time",
-                        job_city: "Pune",
-                        job_country: "India",
-                        job_description: "Implement and maintain our CI/CD pipelines and cloud infrastructure.",
-                        salary_min: "1,400,000",
-                        salary_max: "2,000,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    },
-                    {
-                        job_title: "Product Manager",
-                        employer_name: "Innovate Tech",
-                        job_employment_type: "Full-time",
-                        job_city: "Delhi",
-                        job_country: "India",
-                        job_description: "Guide product development from conception to launch and beyond.",
-                        salary_min: "1,600,000",
-                        salary_max: "2,400,000",
-                        salary_currency: "₹",
-                        job_apply_link: "#"
-                    }
-                ];
-                
-                displayJobs();
-            }
-        
+    
+            // Display jobs with 4-line description limit
             function displayJobs() {
-                let jobListHtml = "";
-                let start = (currentPage - 1) * jobsPerPage;
-                let end = start + jobsPerPage;
-                let paginatedJobs = jobsData.slice(start, end);
-        
-                paginatedJobs.forEach((job, index) => {
-                    const borderColor = borderColors[index % borderColors.length];
-                    console.log("Job:", job, "Border Color:", borderColor);
-                    jobListHtml += `
+                if (jobsData.length === 0) {
+                    $("#jobList").html('<div class="text-center text-muted my-5">No jobs to display</div>');
+                    return;
+                }
+    
+                const startIdx = (currentPage - 1) * JOBS_PER_PAGE;
+                const endIdx = startIdx + JOBS_PER_PAGE;
+                const paginatedJobs = jobsData.slice(startIdx, endIdx);
+    
+                let jobCardsHTML = paginatedJobs.map((job, index) => {
+                    const borderColor = BORDER_COLORS[index % BORDER_COLORS.length];
+                    const description = job.job_description || "No description available.";
+                    const needsToggle = description.split('\n').length > 4 || description.length > 200;
+                    
+                    return `
                         <div class="col-lg-4 col-md-6 mb-4">
-                              <div class="card job-card" style="border-top-color: ${borderColor}">
+                            <div class="card job-card" style="border-top-color: ${borderColor}">
                                 <div class="card-body p-4 d-flex flex-column">
                                     <div class="mb-1">
                                         <span class="badge bg-light text-dark mb-2">${job.job_employment_type || "Full-time"}</span>
@@ -534,46 +563,130 @@
                                     <div class="card-text mb-3">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="bi bi-geo-alt-fill text-secondary me-2"></i>
-                                            <span>${job.job_city}, ${job.job_country}</span>
+                                            <span>${job.job_city || "Remote"}, ${job.job_country || ""}</span>
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-cash-stack text-secondary me-2"></i>
-                                            <span>${job.salary_currency || ""} ${job.salary_min || "Not Revealed"} - ${job.salary_max || ""}</span>
+                                            <span>${formatSalary(job)}</span>
                                         </div>
                                     </div>
-                                    <div class="text-muted description-container mb-3" style="max-height: 60px; overflow: hidden;">
-                                        ${job.job_description || "No description available."}
+                                    <div class="text-muted mb-3 position-relative">
+                                        <div class="job-description-container${needsToggle ? '' : ' expanded'}">
+                                            <div class="job-description-text">${description}</div> 
+                                            ${needsToggle ? '<button class="read-more-btn">Show More</button>' : ''}
+                                        </div>
+                                       
                                     </div>
-                                    <a href="${job.job_apply_link}" target="_blank" class="btn btn-primary mt-auto w-100">Apply Now</a>
+                                    
+                                    <a href="${job.job_apply_link || "#"}" target="_blank" class="btn btn-primary mt-auto w-100">Apply Now</a>
                                 </div>
                             </div>
                         </div>`;
+                }).join('');
+    
+                $("#jobList").html(jobCardsHTML);
+                updatePaginationControls();
+                setupDescriptionToggles();
+            }
+    
+            // Set up click handlers for description toggles
+            function setupDescriptionToggles() {
+                $(".read-more-btn").click(function(e) {
+                    e.preventDefault();
+                    const container = $(this).parent();
+                    const isExpanded = container.hasClass('expanded');
+                    
+                    container.toggleClass('expanded');
+                    $(this).text(isExpanded ? 'Show More' : 'Show Less');
+                    
+                    // Scroll to maintain position if expanding
+                    if (!isExpanded) {
+                        const card = container.closest('.job-card');
+                        const cardTop = card.offset().top;
+                        const viewportTop = $(window).scrollTop();
+                        
+                        if (cardTop < viewportTop) {
+                            $('html, body').animate({
+                                scrollTop: cardTop - 20
+                            }, 100);
+                        }
+                    }
                 });
-        
-                $("#jobList").html(jobListHtml);
+            }
+    
+            function formatSalary(job) {
+                if (!job.salary_currency && !job.salary_min && !job.salary_max) {
+                    return "Salary not disclosed";
+                }
+                return `${job.salary_currency || ""} ${job.salary_min || ""}${job.salary_max ? " - " + job.salary_max : ""}`.trim();
+            }
+    
+            function updatePaginationControls() {
                 $("#pageNumber").text(currentPage);
                 $("#prevPage").toggleClass("disabled", currentPage === 1);
-                $("#nextPage").toggleClass("disabled", end >= jobsData.length);
+                $("#nextPage").toggleClass("disabled", (currentPage * JOBS_PER_PAGE) >= jobsData.length);
             }
-        
+    
+            function loadSampleJobs() {
+                console.log("Loading sample jobs");
+                jobsData = [{
+                    job_title: "Full Stack Developer",
+                    employer_name: "Tech Solutions Inc",
+                    job_employment_type: "Full-time",
+                    job_city: "Bangalore",
+                    job_country: "India",
+                    job_description: "Looking for an experienced developer with knowledge of modern web technologies including React, Node.js, and MongoDB.\n\nResponsibilities:\n- Develop and maintain web applications\n- Collaborate with cross-functional teams\n- Write clean, maintainable code\n\nRequirements:\n- 3+ years of experience\n- Strong JavaScript skills\n- Experience with REST APIs",
+                    job_apply_link: "#"
+                }, {
+                    job_title: "Frontend Engineer",
+                    employer_name: "Digital Creations",
+                    job_employment_type: "Contract",
+                    job_city: "Remote",
+                    salary_currency: "₹",
+                    salary_min: "800,000",
+                    salary_max: "1,200,000",
+                    job_description: "Join our team to build beautiful user interfaces with React and TypeScript. We're looking for someone passionate about creating responsive, accessible web applications with a focus on performance and user experience.",
+                    job_apply_link: "#"
+                }];
+                displayJobs();
+            }
+    
+            function showError(message) {
+                $("#jobList").html(`<div class="alert alert-danger">${message}</div>`);
+            }
+    
+            function showWarning(message) {
+                $("#jobList").html(`<div class="alert alert-warning">${message}</div>`);
+            }
+    
+            // Event handlers
             $("#prevPage").click(function (e) {
                 e.preventDefault();
                 if (currentPage > 1) {
                     currentPage--;
                     displayJobs();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             });
-        
+    
             $("#nextPage").click(function (e) {
                 e.preventDefault();
-                if ((currentPage * jobsPerPage) < jobsData.length) {
+                if ((currentPage * JOBS_PER_PAGE) < jobsData.length) {
                     currentPage++;
                     displayJobs();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             });
-            
-            // Initialize
-            fetchApiKeys();
+    
+            // Cleanup on page unload
+            $(window).on('beforeunload', function() {
+                if (nextFetchTimer) {
+                    clearInterval(nextFetchTimer);
+                }
+            });
+    
+            // Initialize the application
+            init();
         });
     </script>
 </body>

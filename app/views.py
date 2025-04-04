@@ -53,9 +53,40 @@ def api_jobs(request):
     return render(request, 'Api_job.html')
 
 
-def job_list_view(request):  
-    # Fetch jobs and convert _id to string
-    jobs = list(job_collection.find({}).sort("posted_date", -1))
+@login_required
+def job_list_view(request):
+    # Handle AJAX requests for job role and location suggestions
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and 'term' in request.GET:
+        search_term = request.GET.get('term', '').lower()
+        field = request.GET.get('field', '')
+        
+        if field == 'job_role':
+            # Get job roles from the array field
+            roles_doc = jobrole_collection.find_one({}, {"job_roles": 1})
+            job_roles = roles_doc.get('job_roles', []) if roles_doc else []
+            suggestions = [role for role in job_roles if role and search_term in role.lower()][:10]
+            return JsonResponse(suggestions, safe=False)
+        elif field == 'location':
+            # Get locations from the array field
+            locs_doc = location_collection.find_one({}, {"locations": 1})
+            locations = locs_doc.get('locations', []) if locs_doc else []
+            suggestions = [loc for loc in locations if loc and search_term in loc.lower()][:10]
+            return JsonResponse(suggestions, safe=False)
+
+    # Get current date in the same format as deadline (YYYY-MM-DD)
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    # Fetch only active jobs where deadline is greater than or equal to current date
+    # and disabled is not True (either False or doesn't exist)
+    jobs = list(job_collection.find({
+        "deadline": {"$gte": current_date},
+        "$or": [
+            {"disabled": {"$exists": False}},
+            {"disabled": False}
+        ]
+    }).sort("posted_date", -1))
+    
     for job in jobs:
         job['jid'] = str(job['_id'])  # Ensure consistent string format
 
@@ -65,18 +96,15 @@ def job_list_view(request):
     if request.user.is_authenticated:
         user_data = auth_user_collection.find_one({"id": request.user.id})
         if user_data:
-            user_mongo_id = str(user_data['_id'])  # Use MongoDB _id
+            user_mongo_id = str(user_data['_id'])
 
     # Prepare user profile data
     data = {
         "father_name": user_data.get("father_name", "N/A") if user_data else "N/A",
-        "progress": user_data.get("progress", "N/A") if user_data else "N/A",
         "branch": user_data.get("branch", "N/A") if user_data else "N/A",
         "Passout_Year": user_data.get("Passout_Year", "N/A") if user_data else "N/A",
         "Graduation_Percentage": user_data.get("Graduation_Percentage", "N/A") if user_data else "N/A",
         "Percentage_10": user_data.get("10th_Percentage", "N/A") if user_data else "N/A",
-        "Percentage_12": user_data.get("12th_Percentage", "N/A") if user_data else "N/A",
-        "deadline": user_data.get("deadline", "N/A") if user_data else "N/A",
     }
 
     # Convert skills to list
@@ -87,33 +115,30 @@ def job_list_view(request):
     # Get applied jobs
     applied_jobs = set()
     if user_mongo_id:
-        applications = job_applied_collection.find({"user_id": user_mongo_id})
+        applications = job_applied_collection.find({
+            "user_id": user_mongo_id,
+            "$or": [
+                {"disabled": {"$exists": False}},
+                {"disabled": False}
+            ]
+        })
         applied_jobs = {str(app['job_id']) for app in applications}
+
+    # Get job roles and locations from their respective collections
+    roles_doc = jobrole_collection.find_one({}, {"job_roles": 1})
+    job_roles = roles_doc.get('job_roles', []) if roles_doc else []
     
-    # Fetch all unique locations from jobrole_collection
-    locations = jobrole_collection.distinct("Location")
-    # Remove any empty or None values and sort alphabetically
-    locations = sorted([loc for loc in locations if loc], key=lambda x: x.lower())
+    locs_doc = location_collection.find_one({}, {"locations": 1})
+    locations = locs_doc.get('locations', []) if locs_doc else []
 
-    # Fetch all unique job roles from jobrole_collection
-    job_roles = jobrole_collection.find()
-
-# Ensure non-empty values and convert all to strings (if mixed types exist)
-    job_roless = sorted([str(role) for role in job_roles if role], key=lambda x: x.lower())
-
-    print(f"Job Roles: {job_roless}") 
     return render(request, 'job_list.html', {
         'jobs': jobs,
         'applied_jobs': applied_jobs,
         'user': request.user,
-        'data': [data],  # Keeping your original structure
-        'locations': locations,
-          'job_roles': job_roles,
+        'data': [data],
+        'job_roles': sorted(job_roles, key=lambda x: x.lower()),
+        'locations': sorted(locations, key=lambda x: x.lower()),
     })
-
-
-
-
 
 
 
@@ -167,19 +192,34 @@ def signup(request):
     return redirect('/')
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+
 def login_view(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
 
-        user = authenticate(request, username=username, password=password)  # Authenticate user
+        # Basic validation
+        if not username or not password:
+            messages.error(request, "Please fill in both username and password fields.")
+            return render(request, "authunticate.html", {'error_message': "Please fill in all fields"})
+
+        # Authenticate user
+        user = authenticate(request, username=username, password=password)
+        
         if user is not None:
-            login(request, user)  # Log in the user
-            return redirect('job_list')  # Redirect to dashboard
+            login(request, user)
+            # Redirect to next parameter if it exists, otherwise to job_list
+            next_url = request.POST.get('next') or request.GET.get('next') or 'job_list'
+            return redirect(next_url)
+        else:
+            messages.error(request, "Invalid username or password. Please try again.")
+            return render(request, "authunticate.html", {'error_message': "Invalid credentials"})
 
-        return render(request, "authunticate.html", {"error_message": "Invalid credentials"})
-
-    return redirect('/')
+    # If GET request, show login page
+    return render(request, "authunticate.html", {'next': request.GET.get('next', '')})
 
 
 def loginhr(request):
@@ -249,44 +289,6 @@ def hr_login(request):
         return redirect('loginhr')
 
     return redirect('loginhr')  # Show login page if GET request
-# hr creating a job 
-# from django.views.decorators.csrf import csrf_exempt
-# @csrf_exempt
-# @login_required
-# def create_job(request):
-#     if request.method == "POST":
-#         try:
-#             data = json.loads(request.body)
-
-#             # Get HR ID from the logged-in user
-#             hr_id = request.user.id
-
-#             # Prepare job data
-#             job_data = {
-#                 "hr_id": hr_id,
-#                 "job_title": data.get("jobTitle"),
-#                 "company": data.get("company"),
-#                 "location": data.get("location").split(","),
-#                 "job_type": data.get("jobType"),
-#                 "salary_range": data.get("salary"),
-#                 "experience_range": data.get("experience"),
-#                 "skills": data.get("skills").split(","),
-#                 "description": data.get("description"),
-#                 "responsibilities": data.get("responsibilities", ""),
-#                 "qualifications": data.get("qualifications", ""),
-#                 "application_deadline": data.get("deadline"),
-#                 "status": data.get("status", "active"),
-#             }
-
-#             # Insert into MongoDB
-#             job_collection.insert_one(job_data)
-
-#             return JsonResponse({"message": "Job created successfully"}, status=201)
-        
-#         except Exception as e:
-#             return JsonResponse({"error": str(e)}, status=400)
-    
-#     return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 
@@ -295,14 +297,18 @@ def dashbord(request):
     print("hiii")
     # return render(request, 'job_list.html',{"user": request.user})
 
+from django.shortcuts import redirect
+
 def logout_view(request):
-    request.session.flush()
-    return redirect('job_list')
+    if request.user.is_authenticated:  # Optional check
+        request.session.flush()  # Clears all session data
+    return redirect('login')  # Redirects to login page
+
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-import datetime
+from datetime import datetime
 
 
 @csrf_exempt
@@ -341,7 +347,7 @@ def toggle_apply_job(request):
                 "user_id": user_id,
                 "job_id": job_id,
                 "hr_id": hr_id,
-                "applied_at": datetime.datetime.now()
+                "applied_at": datetime.now()
             })
             return JsonResponse({"status": "applied"})
             
@@ -1176,6 +1182,8 @@ import datetime
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from datetime import datetime
+
 # update the job
 @login_required
 def update_job(request):
@@ -1217,7 +1225,8 @@ def update_job(request):
             'description': request.POST.get('description'),
             'education': request.POST.get('education'),
             'deadline': request.POST.get('deadline'),
-            'updated_at': datetime.datetime.now()
+            'updated_at': datetime.now()
+
         }
 
         job_collection.update_one({"_id": job_object_id}, {"$set": update_data})
@@ -1245,6 +1254,54 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from bson import ObjectId
 # delete jobs
+# @login_required
+# def delete_job(request):
+#     if request.method == 'POST':
+#         hr_id = request.session.get('hr_id')
+#         job_id = request.POST.get('job_id')  # Ensure this matches the form field name
+#         print(f"HR ID: {hr_id}")
+#         print(f"Job ID from form: {job_id}")
+        
+#         if not hr_id:
+#             messages.error(request, "You need to be logged in as an HR to delete jobs.")
+#             return redirect('hr_login')
+        
+#         if not job_id:
+#             messages.error(request, "No job ID provided for deletion.")
+#             return redirect('hr_panel')
+            
+#         try:
+#             # Convert job_id to ObjectId for MongoDB query
+#             job_id_obj = ObjectId(job_id)
+#             print(f"Successfully converted to ObjectId: {job_id_obj}")
+            
+#             # Check if the job belongs to this HR
+#             job = job_collection.find_one({"_id": job_id_obj, "hr_id": hr_id})
+#             print(f"Job found: {job is not None}")
+            
+#             if not job:
+#                 messages.error(request, "You can only delete jobs that you've created.")
+#                 return redirect('hr_panel')
+            
+#             # Delete job
+#             result = job_collection.delete_one({"_id": job_id_obj})
+#             print(f"Delete result: {result.deleted_count} document(s) deleted")
+            
+#             # Delete related applications
+#             app_result = job_applied_collection.delete_many({"job_id": str(job_id_obj)})
+#             print(f"Applications deleted: {app_result.deleted_count}")
+            
+#             messages.success(request, "Job posting and related applications deleted successfully!")
+#         except Exception as e:
+#             messages.error(request, f"Error deleting job: {str(e)}")
+#             print(f"Error in delete_job: {str(e)}")
+        
+#         return redirect('hr_panel')
+    
+#     return redirect('hr_panel')
+
+
+
 @login_required
 def delete_job(request):
     if request.method == 'POST':
@@ -1274,22 +1331,59 @@ def delete_job(request):
                 messages.error(request, "You can only delete jobs that you've created.")
                 return redirect('hr_panel')
             
-            # Delete job
-            result = job_collection.delete_one({"_id": job_id_obj})
-            print(f"Delete result: {result.deleted_count} document(s) deleted")
+            # Update job to set disabled=True instead of deleting
+            result = job_collection.update_one(
+                {"_id": job_id_obj},
+                {"$set": {"disabled": True}}
+            )
+            print(f"Update result: {result.modified_count} document(s) updated")
             
-            # Delete related applications
-            app_result = job_applied_collection.delete_many({"job_id": str(job_id_obj)})
-            print(f"Applications deleted: {app_result.deleted_count}")
+            # Optionally, you can also mark related applications as disabled
+            app_result = job_applied_collection.update_many(
+                {"job_id": str(job_id_obj)},
+                {"$set": {"disabled": True}}
+            )
+            print(f"Applications updated: {app_result.modified_count}")
             
-            messages.success(request, "Job posting and related applications deleted successfully!")
+            messages.success(request, "Job posting has been disabled successfully!")
         except Exception as e:
-            messages.error(request, f"Error deleting job: {str(e)}")
+            messages.error(request, f"Error disabling job: {str(e)}")
             print(f"Error in delete_job: {str(e)}")
         
         return redirect('hr_panel')
     
     return redirect('hr_panel')
+
+
+
+@login_required
+def toggle_job_status(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            job_id = data.get('job_id')
+            disable = data.get('disable', True)
+            hr_id = request.session.get('hr_id')
+
+            if not hr_id:
+                return JsonResponse({'success': False, 'error': 'Not authenticated'}, status=401)
+
+            job = job_collection.find_one({"_id": ObjectId(job_id), "hr_id": hr_id})
+            if not job:
+                return JsonResponse({'success': False, 'error': 'Job not found or not authorized'}, status=404)
+
+            # Update the disabled status
+            job_collection.update_one(
+                {"_id": ObjectId(job_id)},
+                {"$set": {"disabled": disable}}
+            )
+
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 # Get job details for editing
 @login_required
 @login_required
@@ -1660,18 +1754,31 @@ def contact_applicant(request):
    
    
    
-    
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+from datetime import datetime, timedelta
+from bson import json_util
 
 # In-memory collection to store jobs
 apijob_collection = db1["apijob"]
 
+# Track last cleanup time
+last_cleanup_time = None
+
 @csrf_exempt
 def store_jobs(request):
+    global last_cleanup_time
+    
     if request.method == 'POST':
         try:
+            # Check if 14390 minutes (~10 days) have passed since last cleanup
+            current_time = datetime.now()
+            if last_cleanup_time is None or (current_time - last_cleanup_time) >= timedelta(minutes=14390):
+                apijob_collection.delete_many({})
+                last_cleanup_time = current_time
+                print(f"Performed cleanup at {current_time}")
+
             data = json.loads(request.body)
             jobs = data.get('jobs', [])
 
@@ -1679,16 +1786,39 @@ def store_jobs(request):
                 return JsonResponse({'status': 'error', 'message': 'No jobs provided'}, status=400)
 
             # Insert jobs into MongoDB collection
-            apijob_collection.insert_many(jobs)
+            result = apijob_collection.insert_many(jobs)
 
-            return JsonResponse({'status': 'success', 'message': f'{len(jobs)} jobs stored successfully'})
+            return JsonResponse({
+                'status': 'success', 
+                'message': f'{len(result.inserted_ids)} jobs stored successfully'
+            })
 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
-
+@csrf_exempt
+def get_jobs(request):
+    if request.method == 'GET':
+        try:
+            # Get all jobs from collection (no pagination for now)
+            jobs = list(apijob_collection.find())
+            
+            # Convert ObjectId to string for JSON serialization
+            for job in jobs:
+                job['_id'] = str(job['_id'])
+            
+            return JsonResponse({
+                'status': 'success',
+                'data': jobs,
+                'count': len(jobs)
+            }, json_dumps_params={'default': json_util.default})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 from django.http import FileResponse, Http404
 import os
 from django.conf import settings

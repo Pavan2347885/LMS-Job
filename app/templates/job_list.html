@@ -367,6 +367,41 @@
             background-size: 16px 12px;
         }
         
+        /* Autocomplete styles */
+        .autocomplete-container {
+            position: relative;
+        }
+        
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .autocomplete-suggestions div {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .autocomplete-suggestions div:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .autocomplete-suggestions .selected {
+            background-color: #007bff;
+            color: white;
+        }
+        
         /* Pagination */
         .pagination-container {
             margin-top: 2rem;
@@ -940,58 +975,59 @@
                 </div>
                 
                 <!-- Job Filters -->
-<div class="row g-3">
-    <div class="col-md-3">
-        <select id="jobRole" class="form-select filter-select">
-            <option value="">Job Role</option>
-            {% for role in job_roles %}
-                <option value="{{ role }}">{{ role }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    
-    <div class="col-md-3">
-        <select id="jobType" class="form-select filter-select">
-            <option value="">Job Type</option>
-            <option value="Full Time">Full Time</option>
-            <option value="Part Time">Part Time</option>
-        </select>
-    </div>
-    
-    <div class="col-md-3">
-        <select id="jobLocation" class="form-select filter-select">
-            <option value="">Location</option>
-            {% for location in locations %}
-                <option value="{{ location }}">{{ location }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    
-    <div class="col-md-3 d-flex">
-        <select id="jobExperience" class="form-select filter-select me-2">
-            <option value="">Experience</option>
-            <option value="0-1">0-1 Years</option>
-            <option value="1-2">1-2 Years</option>
-            <option value="0-5">0-5 Years</option>
-        </select>
-        <button class="btn btn-sm btn-primary" id="filterButton">Apply</button>
-    </div>
-    
-    <div class="col-12 text-center">
-        <button class="btn btn-sm btn-outline-danger" id="removeFilterButton">
-            <i class="bi bi-x-circle"></i> Clear Filters
-        </button>
-    </div>
-</div>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="autocomplete-container">
+                            <input type="text" id="jobRole" class="form-control search-input" 
+                                   placeholder="Search job roles..." autocomplete="off">
+                            <div id="jobRoleSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <input type="hidden" id="selectedJobRole" value="">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <select id="jobType" class="form-select filter-select">
+                            <option value="">Job Type</option>
+                            <option value="Full-time">Full Time</option>
+                            <option value="Part-time">Part Time</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="autocomplete-container">
+                            <input type="text" id="jobLocation" class="form-control search-input" 
+                                   placeholder="Search locations..." autocomplete="off" data-field="location">
+                            <div id="jobLocationSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <input type="hidden" id="selectedJobLocation" value="">
+                    </div>
+                    
+                    <div class="col-md-3 d-flex">
+                        <select id="jobExperience" class="form-select filter-select me-2">
+                            <option value="">Experience</option>
+                            <option value="0-1">0-1 Years</option>
+                            <option value="1-2">1-2 Years</option>
+                            <option value="0-5">0-5 Years</option>
+                        </select>
+                        <button class="btn btn-sm btn-primary" id="filterButton">Apply</button>
+                    </div>
+                    
+                    <div class="col-12 text-center">
+                        <button class="btn btn-sm btn-outline-danger" id="removeFilterButton">
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             <!-- Job List -->
             <div class="row" id="jobList">
                 {% for job in jobs %}
                 <div class="col-lg-4 col-md-6 mb-4 job-card" 
                      data-role="{{ job.Job }}" 
-                     data-type="{{ job.Type }}" 
+                     data-type="{{ job.job_type }}" 
                      data-location="{{ job.Location }}" 
-                     data-experience="{{ job.Experience }}">
+                     data-experience="{{ job.experience }}">
                     
                     <div class="card h-100">
                         <div class="job-card-header">
@@ -1013,7 +1049,7 @@
                             
                             <div class="job-detail">
                                 <span class="job-detail-icon"><i class="fas fa-briefcase"></i></span>
-                                <span>{{ job.Experience }} Years Experience</span>
+                                <span>{{ job.experience }} Years Experience</span>
                             </div>
                             
                             <div class="job-skills">
@@ -1286,8 +1322,54 @@
                 });
             });
             
+            // Job Role Autocomplete
+            const jobRoles = [{% for role in job_roles %}"{{ role }}",{% endfor %}];
+            
+            $("#jobRole").on("input", function() {
+                const input = $(this).val().toLowerCase();
+                const suggestions = $("#jobRoleSuggestions");
+                
+                if (input.length < 2) {
+                    suggestions.hide();
+                    return;
+                }
+                
+                const matches = jobRoles.filter(role => 
+                    role.toLowerCase().includes(input))
+                    .slice(0, 10); // Limit to 10 suggestions
+                
+                if (matches.length > 0) {
+                    suggestions.empty();
+                    matches.forEach(role => {
+                        suggestions.append(`<div data-value="${role}">${role}</div>`);
+                    });
+                    suggestions.show();
+                } else {
+                    suggestions.hide();
+                }
+            });
+            
+            // Handle suggestion selection
+            $(document).on("click", "#jobRoleSuggestions div", function() {
+                const selectedRole = $(this).data("value");
+                $("#jobRole").val(selectedRole);
+                
+                $("#selectedJobRole").val(selectedRole);
+                $("#jobRoleSuggestions").hide();
+            });
+            
+            // Close suggestions when clicking outside
+            $(document).on("click", function(e) {
+                if (!$(e.target).closest(".autocomplete-container").length) {
+                    $("#jobRoleSuggestions").hide();
+                }
+            });
+            
             // Remove Filters
             $("#removeFilterButton, #resetFiltersBtn").on("click", function() {
+                $("#jobRole").val("");
+                $("#selectedJobRole").val("");
+                $("#jobRoleSuggestions").hide();
                 location.reload();
             });
             
@@ -1314,17 +1396,21 @@
             
             // Filter Functionality
             $("#filterButton").on("click", function() {
-                var selectedRole = $("#jobRole").val();
+                var selectedRole = $("#selectedJobRole").val(); // Use the hidden field value
                 var selectedType = $("#jobType").val();
+                console.log("Selected Type:", selectedType);
                 var selectedLocation = $("#jobLocation").val();
                 var selectedExperience = $("#jobExperience").val();
+                console.log("Selected Experience:", selectedExperience);
                 var jobsFound = false;
 
                 $(".job-card").each(function() {
                     var jobRole = $(this).data("role");
-                    var jobType = $(this).data("type");
+                    var jobType = $(this).data("type") || ""; // Default to empty string if not set
+                    console.log("Job Type:", jobType);
                     var jobLocation = $(this).data("location");
                     var jobExperience = $(this).data("experience") || "";
+                    console.log("Job Experience:", jobExperience);
 
                     var showJob = true;
 
@@ -1337,13 +1423,8 @@
                     if (selectedLocation && jobLocation !== selectedLocation) {
                         showJob = false;
                     }
-                    if (selectedExperience) {
-                        let expRange = selectedExperience.split("-").map(Number);
-                        let jobExpRange = jobExperience.split("-").map(Number);
-
-                        if (!(jobExpRange[0] >= expRange[0] && jobExpRange[1] <= expRange[1])) {
-                            showJob = false;
-                        }
+                    if (selectedExperience && jobExperience !== selectedExperience) {
+                       showJob = false;
                     }
 
                     $(this).toggle(showJob);
@@ -1359,7 +1440,7 @@
                     $("#noJobsFound").hide();
                 }
             });
-            
+             
             // Apply Button Functionality
             $(".apply-btn").on("click", function() {
                 var button = $(this);
@@ -1458,6 +1539,121 @@
                 }
             });
         });
+
+
+
+        // Job Role and Location Autocomplete
+        const jobRoles = [{% for role in job_roles %}"{{ role }}",{% endfor %}];
+$("#jobRole, #jobLocation").on("input", function() {
+    const input = $(this).val().toLowerCase();
+    const field = $(this).data("field");
+    const suggestionsId = field === "job_role" ? "#jobRoleSuggestions" : "#jobLocationSuggestions";
+    const suggestions = $(suggestionsId);
+    
+    if (input.length < 2) {
+        suggestions.hide();
+        return;
+    }
+    
+    // AJAX request for suggestions
+    $.ajax({
+        url: window.location.pathname,
+        method: "GET",
+        data: {
+            term: input,
+            field: field,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        success: function(matches) {
+            if (matches.length > 0) {
+                suggestions.empty();
+                matches.forEach(item => {
+                    suggestions.append(`<div data-value="${item}">${item}</div>`);
+                });
+                suggestions.show();
+            } else {
+                suggestions.hide();
+            }
+        }
+    });
+});
+
+// Handle suggestion selection
+$(document).on("click", "#jobRoleSuggestions div, #jobLocationSuggestions div", function() {
+    const selectedValue = $(this).data("value");
+    const container = $(this).parent();
+    
+    if (container.is("#jobRoleSuggestions")) {
+        $("#jobRole").val(selectedValue);
+        $("#selectedJobRole").val(selectedValue);
+    } else {
+        $("#jobLocation").val(selectedValue);
+        $("#selectedJobLocation").val(selectedValue);
+    }
+    container.hide();
+});
+
+// Close suggestions when clicking outside
+$(document).on("click", function(e) {
+    if (!$(e.target).closest(".autocomplete-container").length) {
+        $("#jobRoleSuggestions, #jobLocationSuggestions").hide();
+    }
+});
+
+// Remove Filters
+$("#removeFilterButton, #resetFiltersBtn").on("click", function() {
+    $("#jobRole").val("");
+    $("#selectedJobRole").val("");
+    $("#jobLocation").val("");
+    $("#selectedJobLocation").val("");
+    $("#jobRoleSuggestions, #jobLocationSuggestions").hide();
+    location.reload();
+});
+
+// Filter Functionality - Update to use selectedJobLocation
+$("#filterButton").on("click", function() {
+    var selectedRole = $("#selectedJobRole").val();
+    var selectedLocation = $("#selectedJobLocation").val();
+    var selectedType = $("#jobType").val();
+    var selectedExperience = $("#jobExperience").val();
+    console.log("Selected Experience:", selectedExperience);
+    var jobsFound = false;
+
+    $(".job-card").each(function() {
+        var jobRole = $(this).data("role");
+        var jobLocation = $(this).data("location");
+        var jobType = $(this).data("type");
+        var jobExperience = $(this).data("experience") || "";
+        console.log("Job Experience:", jobExperience);
+
+        var showJob = true;
+
+        if (selectedRole && jobRole !== selectedRole) {
+            showJob = false;
+        }
+        if (selectedLocation && jobLocation !== selectedLocation) {
+            showJob = false;
+        }
+        if (selectedType && jobType !== selectedType) {
+            showJob = false;
+        }
+        if (selectedExperience && jobExperience !== selectedExperience) {
+            showJob = false
+        }
+
+        $(this).toggle(showJob);
+        if (showJob) jobsFound = true;
+    });
+
+    // Show/hide no jobs found message
+    if (!jobsFound) {
+        $("#jobList").hide();
+        $("#noJobsFound").show();
+    } else {
+        $("#jobList").show();
+        $("#noJobsFound").hide();
+    }
+});
     </script>
 </body>
 </html>

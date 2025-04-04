@@ -68,7 +68,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app',
+    'app'
+    
+  
 ]
 
 MIDDLEWARE = [
@@ -81,6 +83,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
      'django.middleware.csrf.CsrfViewMiddleware',
        'django.middleware.csrf.CsrfViewMiddleware',
+       
+    
 ]
 
 ROOT_URLCONF = 'job.urls'
@@ -100,7 +104,7 @@ TEMPLATES = [
         },
     },
 ]
-
+DEBUG = True
 WSGI_APPLICATION = 'job.wsgi.application'
 
 
