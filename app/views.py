@@ -44,11 +44,34 @@ location_collection=db["location"]
 jobrole_collection=db["jobrole"]
 education_collection=db["educations"]
 
+from bson import ObjectId
+from datetime import datetime
+import json
+from django.http import JsonResponse
+
+class MongoJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
+
 def user_list(request):
-    users = list(auth_user_collection.find({}))  # Fetch users
-    social_auths = list(social_auth_collection.find({}))  # Fetch social auth users
+    users = list(auth_user_collection.find({}))
+    social_auths = list(social_auth_collection.find({}))
     
-    return render(request, 'user_list.html', {'users': users, 'social_auths': social_auths})
+    # Convert to JSON using our custom encoder
+    users_json = json.loads(json.dumps(users, cls=MongoJSONEncoder))
+    social_auths_json = json.loads(json.dumps(social_auths, cls=MongoJSONEncoder))
+    
+    response = JsonResponse({
+        'users': users_json,
+        'social_auths': social_auths_json
+    })
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
+
 
 def api_jobs(request):
     return render(request, 'Api_job.html')

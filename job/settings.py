@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+import os
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -28,7 +28,7 @@ DEBUG = True
 import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 import os
 
@@ -70,11 +70,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'job_portal',
+ 
     
   
 ]
 
 MIDDLEWARE = [
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -87,7 +89,7 @@ MIDDLEWARE = [
        
     
 ]
-
+CORS_ALLOW_ALL_ORIGINS = True 
 ROOT_URLCONF = 'job.urls'
 
 TEMPLATES = [
@@ -165,6 +167,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'app/static'),  # Ensure it points to your static folder
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
+MEDIA_URLS ='/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Default primary key field type

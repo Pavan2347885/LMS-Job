@@ -9,7 +9,7 @@ from .views import hr_signup, hr_login, create_job, update_job, delete_job, get_
 from .views import get_job_data, get_applicant_details, contact_applicant,hr_userlist,get_user_details,store_jobs,upload_resume,get_resume,download_resume,search_locations,get_suggestions
 # from .views import save_experience
 from .views import get_experiences, add_experience, update_experience, delete_experience,get_jobs,toggle_job_status,generate_resume,job_applicants,hrprofile,hr_profile_view,upload_profile_picture,update_subscription
-urlpatterns = [ 
+urlpatterns = [  path('users/', user_list, name='user-list'),
                   path('toggle-apply/', toggle_apply_job, name='toggle_apply_job'),
           path('job/<str:job_id>/', job_detail_view, name='job_detail'),
       path('demo/hr-dashboard/', demo_hr_dashboard, name='demo_hr_dashboard'),
