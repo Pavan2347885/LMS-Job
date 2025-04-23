@@ -28,9 +28,10 @@ DEBUG = True
 import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['lms-job.onrender.com']
 
 import os
+
 
 def load_env_file(file_path):
     """Read .env file and load variables into the environment safely."""
