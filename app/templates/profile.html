@@ -19,7 +19,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
     <style>/* Navbar Styles */
+        .navbar .dropdown-toggle::after {
+            display: none !important;
+        }
         .navbar {
             background-color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -1601,7 +1606,6 @@ function formatDate(dateString) {
 }
 
 
-// Template 1 - Exact ATS Bold Accounting Resume Format
 function generateTemplate1(doc, userData) {
     // Document setup - A4 size
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -1609,77 +1613,96 @@ function generateTemplate1(doc, userData) {
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
     
-    // Set document properties with keywords for ATS
+    // Color scheme - professional but distinctive
+    const primaryColor = [0, 62, 126]; // Deep blue
+    const accentColor = [70, 130, 180]; // Steel blue
+    const darkGray = [50, 50, 50];
+    
+    // Set document properties with optimized keywords for ATS
     doc.setProperties({
         title: `${userData.user_name} - Professional Resume`,
-        subject: `Resume - ${userData.skills.slice(0, 5).join(', ')}`,
+        subject: `Resume - ${userData.job_title || 'Accounting Professional'} - ${userData.skills?.slice(0, 5).join(', ')}`,
         author: userData.user_name,
-        keywords: userData.skills.join(', ') // Keywords help with ATS scanning
+        keywords: `${userData.job_title || 'Accountant'}, ${userData.skills?.join(', ')}, ${userData.certifications?.join(', ') || 'CPA'}` // Enhanced keywords for ATS
     });
 
     // ===== HEADER SECTION =====
-    // User name
+    // Name header with accent background
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, margin, contentWidth, 20, 'F');
+    
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.setTextColor(0, 0, 0);
-    doc.text(userData.user_name, margin, 25);
+    doc.setTextColor(255, 255, 255); // White text on colored background
+    doc.text(userData.user_name || "YOUR NAME", pageWidth/2, margin + 14, {align: 'center'});
     
-    // Main table structure starts
-    let currentY = 32;
+    // Professional title under name
+    doc.setFillColor(...accentColor);
+    doc.rect(margin, margin + 20, contentWidth, 12, 'F');
     
-    // =====  CONTACT INFO & SUMMARY BOX =====
-    // Create the contact info + summary table (exact table layout from sample)
-    const tableWidth = contentWidth;
-    const tableTop = currentY;
+    doc.setFontSize(12);
+    doc.text(userData.job_title || "Accounting Professional", pageWidth/2, margin + 28, {align: 'center'});
     
-    // Draw outer table borders
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.rect(margin, tableTop, tableWidth, 80); // Height based on sample
+    // Contact info section - aligned for better readability
+    let currentY = margin + 45;
     
-    // Divide into two columns - 2/3 and 1/3
-    const leftColWidth = tableWidth * 0.6;
-    const rightColWidth = tableWidth * 0.4;
-    
-    // Draw vertical divider
-    doc.line(margin + leftColWidth, tableTop, margin + leftColWidth, tableTop + 80);
-    
-    // Left column content - contact info
-    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...darkGray);
     doc.setFontSize(10);
-    const contactInfo = [
-        `${userData.location || '4567 Main Street, Detroit, MI 48127'} |`,
-        `${userData.mobile || '(313) 555-0100'} |`,
-        `${userData.email || '<donna@example.com>'} |`,
-        `${userData.linkedin || 'www.greatsiteaddress.com'}`
+    doc.setFont("helvetica", "normal");
+    
+    // Contact info in a balanced layout
+    const contactLeft = [
+        `${userData.location || 'Detroit, MI 48127'}`,
+        `${userData.mobile || '(313) 555-0100'}`
     ];
     
-    // Add contact info text with exact formatting
-    doc.text(contactInfo, margin + 5, tableTop + 15);
+    const contactRight = [
+        `${userData.email || 'email@example.com'}`,
+        `${userData.linkedin || 'linkedin.com/in/yourprofile'}`
+    ];
     
-    // Add summary text (if available)
-    const summary = userData.summary || 
-        "Analytical, organized and detail-oriented accountant with GAAP expertise and experience in the full spectrum of public accounting. Collaborative team player with ownership mentality and a track record of delivering the highest quality strategic solutions to resolve challenges and propel business growth.";
+    // Left side contact info
+    doc.text(contactLeft, margin + contentWidth/4, currentY, {align: 'center'});
     
-    const summaryLines = doc.splitTextToSize(summary, leftColWidth - 10);
-    doc.text(summaryLines, margin + 5, tableTop + 30);
+    // Right side contact info
+    doc.text(contactRight, margin + (contentWidth*3)/4, currentY, {align: 'center'});
     
-    // ===== HORIZONTAL DIVIDER =====
-    // Add space after the first table
-    currentY = tableTop + 80 + 15;
+    currentY += 20;
     
-    // ===== EXPERIENCE SECTION =====
-    // Create experience header table
-    doc.setDrawColor(0);
-    doc.rect(margin, currentY, tableWidth, 20);
-    doc.line(margin + leftColWidth, currentY, margin + leftColWidth, currentY + 20);
+    // ===== PROFESSIONAL SUMMARY =====
+    doc.setFillColor(240, 240, 240); // Light gray background
+    doc.rect(margin, currentY, contentWidth, 8, 'F');
     
-    // Add experience heading
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("ExperiEnce", margin + 5, currentY + 13);
+    doc.setTextColor(...primaryColor);
+    doc.text("PROFESSIONAL SUMMARY", margin + 5, currentY + 6);
     
-    currentY += 20 + 15; // Move to after the header
+    currentY += 15;
+    
+    // Summary content
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...darkGray);
+    
+    const summary = userData.summary || 
+        "Results-driven accounting professional with expertise in GAAP compliance, financial reporting, and tax preparation. Combines analytical precision with strategic problem-solving to optimize financial operations and drive business growth. Adept at leveraging accounting software to streamline processes and deliver actionable financial insights to stakeholders.";
+    
+    const summaryLines = doc.splitTextToSize(summary, contentWidth - 10);
+    doc.text(summaryLines, margin, currentY);
+    
+    currentY += summaryLines.length * 6 + 15;
+    
+    // ===== EXPERIENCE SECTION =====
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, currentY, contentWidth, 8, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryColor);
+    doc.text("PROFESSIONAL EXPERIENCE", margin + 5, currentY + 6);
+    
+    currentY += 15;
     
     // Create space for experiences
     if (userData.experiences && userData.experiences.length > 0) {
@@ -1690,75 +1713,60 @@ function generateTemplate1(doc, userData) {
                 currentY = margin + 20;
             }
             
-            // Date range 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            const dateText = exp.currently_working ? 
-                `${formatDate(exp.start_date)} -- Present` : 
-                `${formatDate(exp.start_date)} -- ${formatDate(exp.end_date)}`;
-                
-            // Use the sample formatting with 20XX
-            const formattedDateText = dateText.replace(/\d{4}/g, '20XX');
-            doc.text(formattedDateText, margin, currentY);
-            currentY += 8;
-            
-            // Job title and company
+            // Company and job title in bold with the primary color
             doc.setFont("helvetica", "bold");
-            const jobLine = `${exp.job_title || 'Accountant'} | ${exp.company_name || 'Company Name'} | ${exp.location || 'Location'}`;
-            doc.text(jobLine, margin, currentY);
+            doc.setFontSize(11);
+            doc.setTextColor(...primaryColor);
+            doc.text(exp.company_name || 'Company Name', margin, currentY);
+            
+            // Right-aligned date range
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(...darkGray);
+            const dateText = exp.currently_working ? 
+                `${formatDate(exp.start_date)} - Present` : 
+                `${formatDate(exp.start_date)} - ${formatDate(exp.end_date)}`;
+            doc.text(dateText, pageWidth - margin, currentY, {align: 'right'});
+            
+            currentY += 6;
+            
+            // Job title and location
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(...accentColor);
+            doc.text(`${exp.job_title || 'Accountant'} | ${exp.location || 'Location'}`, margin, currentY);
+            
             currentY += 8;
             
-            // Description paragraph
+            // Key responsibilities and achievements with bullet points
             doc.setFont("helvetica", "normal");
-            const description = exp.description || "Description of job responsibilities and achievements.";
-            const descLines = doc.splitTextToSize(description, contentWidth - 10);
-            doc.text(descLines, margin, currentY);
-            currentY += descLines.length * 5 + 15; // Space after description
+            doc.setTextColor(...darkGray);
+            
+            // Split description into bullet points for better readability
+            const description = exp.description || "Managed financial reporting and analysis. Prepared tax returns and financial statements. Reconciled accounts and maintained accurate records. Collaborated with cross-functional teams to improve financial processes.";
+            
+            // Either use provided bullet points or create them
+            let bullets;
+            if (description.includes('•') || description.includes('- ')) {
+                bullets = description.split(/•|\- /).filter(item => item.trim().length > 0);
+            } else {
+                // Create bullets from sentences
+                bullets = description.split('.').filter(item => item.trim().length > 0).map(item => item.trim() + '.');
+            }
+            
+            bullets.forEach(bullet => {
+                if (bullet.trim()) {
+                    const bulletText = doc.splitTextToSize(`• ${bullet.trim()}`, contentWidth - 10);
+                    doc.text(bulletText, margin, currentY);
+                    currentY += bulletText.length * 6;
+                }
+            });
+            
+            currentY += 10; // Space after each experience
         });
     } else {
         // Sample experience data if none provided
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text("20XX -- Present", margin, currentY);
-        currentY += 8;
-        
-        doc.setFont("helvetica", "bold");
-        doc.text("Accountant | Trey Research | San Francisco, CA", margin, currentY);
-        currentY += 8;
-        
-        doc.setFont("helvetica", "normal");
-        const sampleDesc = "Working in a mid-sized public accounting firm to provide professional accounting services for individuals and business clients. Provide full range of services, include income tax preparation, audit support, preparation of financial statements, pro forma budgeting, general ledger accounting, and bank reconciliation.";
-        const sampleLines = doc.splitTextToSize(sampleDesc, contentWidth - 10);
-        doc.text(sampleLines, margin, currentY);
-        currentY += sampleLines.length * 5 + 15;
-        
-        // Second sample experience
-        doc.text("20XX -- 20XX", margin, currentY);
-        currentY += 8;
-        
-        doc.setFont("helvetica", "bold");
-        doc.text("Bookkeeper | Bandter Real Estate | Berkeley, CA", margin, currentY);
-        currentY += 8;
-        
-        doc.setFont("helvetica", "normal");
-        const sampleDesc2 = "Inhouse bookkeeper for a real estate development company. Maintained financial books, tracked expenses, prepared, and submitted invoices, and oversaw payroll.";
-        const sampleLines2 = doc.splitTextToSize(sampleDesc2, contentWidth - 10);
-        doc.text(sampleLines2, margin, currentY);
-        currentY += sampleLines2.length * 5 + 15;
-        
-        // Third sample experience with bold date
-        doc.setFont("helvetica", "bold");
-        doc.text("December 20XX -- April 20XX", margin, currentY);
-        currentY += 8;
-        
-        doc.text("Accounting Intern | Olson Harris Ltd. | Vallejo, CA", margin, currentY);
-        currentY += 8;
-        
-        doc.setFont("helvetica", "normal");
-        const sampleDesc3 = "Assisted with payroll and Pensions service management for 150+ employees. Prepared invoices for more than 200 clients. Assisted with bill payments, records organization and preparation, and other office duties to support financial and accounting operations.";
-        const sampleLines3 = doc.splitTextToSize(sampleDesc3, contentWidth - 10);
-        doc.text(sampleLines3, margin, currentY);
-        currentY += sampleLines3.length * 5 + 15;
+        addSampleExperience(doc);
     }
     
     // ===== EDUCATION SECTION =====
@@ -1768,42 +1776,72 @@ function generateTemplate1(doc, userData) {
         currentY = margin + 20;
     }
     
-    // Education header table
-    doc.setDrawColor(0);
-    doc.rect(margin, currentY, tableWidth, 20);
-    doc.line(margin + leftColWidth, currentY, margin + leftColWidth, currentY + 20);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, currentY, contentWidth, 8, 'F');
     
-    // Add education heading
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("Education", margin + 5, currentY + 13);
+    doc.setTextColor(...primaryColor);
+    doc.text("EDUCATION", margin + 5, currentY + 6);
     
-    currentY += 20 + 15; // Move to after header
-    
-    // Education content
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    
-    // Add graduation date
-    doc.text("June 20XX", margin, currentY);
-    currentY += 8;
-    
-    // Add degree info
-    doc.setFont("helvetica", "bold");
-    const degreeText = "Bachelor of Science in Accounting, Minor in Business Administration | Bellows College";
-    doc.text(degreeText, margin, currentY);
-    currentY += 8;
-    
-    // Add education details
-    doc.setFont("helvetica", "normal");
-    doc.text("Distinguished member of university's Accounting Society", margin, currentY);
-    currentY += 6;
-    
-    doc.text("Relevant coursework: Advanced Financial Accounting and Reporting", margin, currentY);
-    currentY += 6;
-    
-    doc.text("GPA: 3.8", margin, currentY);
     currentY += 15;
+    
+    // Education entries
+    if (userData.education && userData.education.length > 0) {
+        userData.education.forEach(edu => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(...primaryColor);
+            doc.text(edu.university || "Bellows College", margin, currentY);
+            
+            // Right-aligned graduation date
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.setTextColor(...darkGray);
+            doc.text(formatDate(edu.graduation_date) || "June 20XX", pageWidth - margin, currentY, {align: 'right'});
+            
+            currentY += 6;
+            
+            // Degree information
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...darkGray);
+            doc.text(edu.degree || "Bachelor of Science in Accounting", margin, currentY);
+            
+            currentY += 6;
+            
+            // GPA and honors if available
+            if (edu.gpa || edu.honors) {
+                doc.setFont("helvetica", "italic");
+                doc.text(`${edu.honors ? edu.honors + ' | ' : ''}GPA: ${edu.gpa || '3.8'}`, margin, currentY);
+                currentY += 6;
+            }
+            
+            currentY += 6;
+        });
+    } else {
+        // Default education entry
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Bellows College", margin, currentY);
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...darkGray);
+        doc.text("June 20XX", pageWidth - margin, currentY, {align: 'right'});
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "normal");
+        doc.text("Bachelor of Science in Accounting, Minor in Business Administration", margin, currentY);
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "italic");
+        doc.text("Distinguished member of university's Accounting Society | GPA: 3.8", margin, currentY);
+        
+        currentY += 15;
+    }
     
     // ===== SKILLS SECTION =====
     // Check if we need a new page
@@ -1812,67 +1850,209 @@ function generateTemplate1(doc, userData) {
         currentY = margin + 20;
     }
     
-    // Skills header table
-    doc.setDrawColor(0);
-    doc.rect(margin, currentY, tableWidth, 20);
-    doc.line(margin + leftColWidth, currentY, margin + leftColWidth, currentY + 20);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, currentY, contentWidth, 8, 'F');
     
-    // Add skills heading
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("Skills", margin + 5, currentY + 13);
+    doc.setTextColor(...primaryColor);
+    doc.text("SKILLS & CERTIFICATIONS", margin + 5, currentY + 6);
     
-    currentY += 20; // Move to skills grid
+    currentY += 15;
     
-    // Skills grid - create a 2x3 table
-    const rowHeight = 20;
-    const colWidth = tableWidth / 2;
-    
-    // Define skills (use provided or sample skills)
+    // Skills displayed in a more modern two-column format
     const skillsList = userData.skills && userData.skills.length >= 6 ? 
-        userData.skills.slice(0, 6) : 
-        ["Microsoft NAV Dynamics", "Bookkeeping", "Cashflow planning & management", 
-         "Exceptional communication", "State & federal tax codes", "Fluent in German"];
+        userData.skills : 
+        ["Financial Reporting & Analysis", "GAAP Compliance", "Tax Preparation & Planning", 
+         "QuickBooks & Microsoft Excel", "Accounting Software (SAP, Oracle)", "Risk Assessment"];
+         
+    // Calculate how to split the skills into two columns
+    const halfPoint = Math.ceil(skillsList.length / 2);
+    const leftSkills = skillsList.slice(0, halfPoint);
+    const rightSkills = skillsList.slice(halfPoint);
     
-    // Create skills grid
-    for (let row = 0; row < 3; row++) {
-        // Draw row borders
-        doc.rect(margin, currentY, colWidth, rowHeight);
-        doc.rect(margin + colWidth, currentY, colWidth, rowHeight);
+    // Format the skills with bullet points
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...darkGray);
+    
+    // Left column skills
+    let skillY = currentY;
+    leftSkills.forEach(skill => {
+        doc.text(`• ${skill}`, margin, skillY);
+        skillY += 6;
+    });
+    
+    // Right column skills
+    skillY = currentY;
+    rightSkills.forEach(skill => {
+        doc.text(`• ${skill}`, margin + contentWidth/2, skillY);
+        skillY += 6;
+    });
+    
+    currentY = Math.max(skillY, currentY + leftSkills.length * 6) + 10;
+    
+    // ===== CERTIFICATIONS SECTION (if available) =====
+    if (userData.certifications && userData.certifications.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Certifications:", margin, currentY);
         
-        // Add skills text for this row
+        currentY += 6;
+        
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(skillsList[row*2], margin + 5, currentY + 13);
-        doc.text(skillsList[row*2 + 1], margin + colWidth + 5, currentY + 13);
+        doc.setTextColor(...darkGray);
         
-        // Move to next row
-        currentY += rowHeight;
+        const certText = userData.certifications.join(" | ");
+        const certLines = doc.splitTextToSize(certText, contentWidth - 10);
+        doc.text(certLines, margin, currentY);
+        
+        currentY += certLines.length * 6 + 10;
+    } else {
+        // Sample certifications
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Certifications:", margin, currentY);
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...darkGray);
+        doc.text("Certified Public Accountant (CPA) | Certified Management Accountant (CMA)", margin, currentY);
+        
+        currentY += 15;
     }
     
-    // Footer with page numbers
+    // ===== PROFESSIONAL AFFILIATIONS (if available) =====
+    if (userData.affiliations && userData.affiliations.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Professional Affiliations:", margin, currentY);
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...darkGray);
+        
+        const affText = userData.affiliations.join(" | ");
+        const affLines = doc.splitTextToSize(affText, contentWidth - 10);
+        doc.text(affLines, margin, currentY);
+        
+        currentY += affLines.length * 6 + 10;
+    }
+    
+    // Footer with subtle divider and page numbers
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
+        
+        // Footer divider line
+        doc.setDrawColor(...accentColor);
+        doc.setLineWidth(0.5);
+        doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+        
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        doc.setTextColor(...accentColor);
+        doc.text(`${userData.user_name || 'Resume'} | Page ${i} of ${totalPages}`, pageWidth/2, pageHeight - 10, {align: 'center'});
     }
     
-    // Helper function for date formatting
+    // Helper functions
     function formatDate(dateString) {
-        if (!dateString) return '20XX';
+        if (!dateString) return 'MM/YYYY';
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString || '20XX';
+            if (isNaN(date.getTime())) return dateString;
             
-            // Format to match sample with 20XX pattern
-            return '20XX';
+            // Format as MM/YYYY
+            return `${date.getMonth() + 1}/${date.getFullYear()}`;
         } catch (e) {
-            return '20XX';
+            return 'MM/YYYY';
         }
+    }
+    
+    function addSampleExperience(doc) {
+        // Sample experience entry 1
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Trey Research", margin, currentY);
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...darkGray);
+        doc.text("05/20XX - Present", pageWidth - margin, currentY, {align: 'right'});
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...accentColor);
+        doc.text("Senior Accountant | San Francisco, CA", margin, currentY);
+        
+        currentY += 8;
+        
+        // Bullet points for experience
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...darkGray);
+        
+        const bullets1 = [
+            "• Managed full accounting cycle for 25+ business clients, ensuring timely and accurate financial reporting.",
+            "• Prepared and reviewed tax returns for businesses and high-net-worth individuals, identifying over $200K in tax savings.",
+            "• Implemented new accounting software that increased department efficiency by 30% and reduced errors by 25%.",
+            "• Provided financial advisory services, helping clients optimize cash flow and improve financial decision-making."
+        ];
+        
+        bullets1.forEach(bullet => {
+            const bulletLines = doc.splitTextToSize(bullet, contentWidth - 10);
+            doc.text(bulletLines, margin, currentY);
+            currentY += bulletLines.length * 6;
+        });
+        
+        currentY += 10;
+        
+        // Sample experience entry 2
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Bandter Real Estate", margin, currentY);
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...darkGray);
+        doc.text("06/20XX - 04/20XX", pageWidth - margin, currentY, {align: 'right'});
+        
+        currentY += 6;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...accentColor);
+        doc.text("Staff Accountant | Berkeley, CA", margin, currentY);
+        
+        currentY += 8;
+        
+        // Bullet points for experience
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...darkGray);
+        
+        const bullets2 = [
+            "• Maintained financial records for a real estate portfolio valued at $15M, ensuring accuracy and compliance.",
+            "• Processed biweekly payroll for 30+ employees and managed vendor relationships.",
+            "• Reconciled bank statements and identified $45K in unnecessary expenses, contributing to cost reduction initiatives.",
+            "• Generated monthly financial reports for executive team and investors."
+        ];
+        
+        bullets2.forEach(bullet => {
+            const bulletLines = doc.splitTextToSize(bullet, contentWidth - 10);
+            doc.text(bulletLines, margin, currentY);
+            currentY += bulletLines.length * 6;
+        });
+        
+        currentY += 10;
     }
 }
 // Template 2 - Minimal Modern ATS-Friendly Resume
@@ -1880,487 +2060,545 @@ function generateTemplate2(doc, userData) {
     // Document setup - A4 size
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
+    const margin = 25; // Slightly larger margins for more whitespace
     const contentWidth = pageWidth - (margin * 2);
     
-    // Set document properties with keywords for ATS
+    // Modern color scheme
+    const primaryColor = [42, 72, 88]; // Dark teal
+    const secondaryColor = [79, 134, 142]; // Medium teal
+    const accentColor = [191, 215, 234]; // Light blue accent
+    const textColor = [60, 60, 60]; // Dark gray for readability
+    
+    // Enhanced document properties for ATS optimization
     doc.setProperties({
-        title: `${userData.user_name} - ${userData.experiences?.[0]?.job_title || 'Professional'} Resume`,
-        subject: `Resume - ${userData.skills.slice(0, 5).join(', ')}`,
-        author: userData.user_name,
-        keywords: userData.skills.join(', ') // Keywords help with ATS scanning
+        title: `${userData.user_name || 'Professional'} - Resume - ${userData.job_title || 'Accounting Professional'}`,
+        subject: `Resume, ${userData.job_title || 'Accounting'}, ${userData.skills?.slice(0, 3).join(', ')}`,
+        author: userData.user_name || 'Candidate',
+        keywords: `${userData.job_title || 'Accountant'}, ${userData.skills?.join(', ') || 'financial reporting, GAAP, tax preparation'}, ${userData.certifications?.join(', ') || 'CPA'}, accounting, finance` 
     });
 
-    // Color theme
-    const primaryColor = [42, 87, 141]; // Deep blue
-    const secondaryColor = [90, 140, 190]; // Medium blue
-    const accentColor = [230, 235, 240]; // Very light blue
+    // ===== DISTINCTIVE HEADER SECTION =====
+    // Left sidebar for contact information
+    const sidebarWidth = contentWidth * 0.3;
+    const mainContentWidth = contentWidth * 0.7;
+    const mainContentStart = margin + sidebarWidth;
     
-    // Helper function for page overflow checking
-    function checkPageOverflow(currentY, requiredSpace = 20) {
-        if (currentY > pageHeight - requiredSpace) {
-            doc.addPage();
-            // Add header bar to new page
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, 0, pageWidth, 12, 'F');
-            return margin + 15;
+    // Create sidebar background
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, margin, sidebarWidth, pageHeight - (margin * 2), 'F');
+    
+    // Main header background
+    doc.setFillColor(...accentColor);
+    doc.rect(mainContentStart, margin, mainContentWidth, 50, 'F');
+    
+    // Name and title in main header area
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...primaryColor);
+    doc.text(userData.user_name || "YOUR FULL NAME", mainContentStart + 10, margin + 25);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(...secondaryColor);
+    doc.text(userData.job_title || "ACCOUNTING PROFESSIONAL", mainContentStart + 10, margin + 42);
+    
+    // Contact information in sidebar
+    let sidebarY = margin + 80;
+    
+    // Contact header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text("CONTACT", margin + 10, sidebarY);
+    
+    sidebarY += 15;
+    
+    // Contact details
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    
+    // Location
+    doc.text("LOCATION", margin + 10, sidebarY);
+    sidebarY += 5;
+    doc.setFont("helvetica", "light");
+    doc.text(userData.location || "Detroit, MI 48127", margin + 10, sidebarY);
+    
+    sidebarY += 15;
+    
+    // Phone
+    doc.setFont("helvetica", "normal");
+    doc.text("PHONE", margin + 10, sidebarY);
+    sidebarY += 5;
+    doc.setFont("helvetica", "light");
+    doc.text(userData.mobile || "(313) 555-0100", margin + 10, sidebarY);
+    
+    sidebarY += 15;
+    
+    // Email
+    doc.setFont("helvetica", "normal");
+    doc.text("EMAIL", margin + 10, sidebarY);
+    sidebarY += 5;
+    doc.setFont("helvetica", "light");
+    doc.text(userData.email || "your.email@example.com", margin + 10, sidebarY);
+    
+    sidebarY += 15;
+    
+    // LinkedIn
+    doc.setFont("helvetica", "normal");
+    doc.text("LINKEDIN", margin + 10, sidebarY);
+    sidebarY += 5;
+    doc.setFont("helvetica", "light");
+    doc.text(userData.linkedin || "linkedin.com/in/yourprofile", margin + 10, sidebarY);
+    
+    // Add Skills section to sidebar
+    sidebarY += 25;
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("SKILLS", margin + 10, sidebarY);
+    
+    sidebarY += 15;
+    
+    // Skills list with custom bullets
+    const skillsList = userData.skills && userData.skills.length > 0 ? 
+        userData.skills : 
+        ["Financial Analysis", "Accounting Principles", "Financial Reporting", 
+         "Tax Preparation", "GAAP Compliance", "Microsoft Excel (Advanced)", 
+         "QuickBooks", "SAP Financial Systems", "Audit Preparation"];
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    
+    skillsList.forEach(skill => {
+        // Draw small circle bullet point
+        doc.setFillColor(255, 255, 255);
+        doc.circle(margin + 5, sidebarY - 2, 1.5, 'F');
+        
+        // Skill text
+        doc.text(skill, margin + 10, sidebarY);
+        sidebarY += 8;
+        
+        // Check if we need more space
+        if (sidebarY > pageHeight - 100) {
+            sidebarY = 30; // Reset for next column if needed
         }
-        return currentY;
+    });
+    
+    // Add Certifications section to sidebar if we have space
+    if (sidebarY < pageHeight - 80) {
+        sidebarY += 10;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("CERTIFICATIONS", margin + 10, sidebarY);
+        
+        sidebarY += 15;
+        
+        // Certifications list
+        const certifications = userData.certifications || [
+            "Certified Public Accountant (CPA)",
+            "Certified Management Accountant (CMA)"
+        ];
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        
+        certifications.forEach(cert => {
+            // Draw small circle bullet point
+            doc.setFillColor(255, 255, 255);
+            doc.circle(margin + 5, sidebarY - 2, 1.5, 'F');
+            
+            // Split certification text if needed
+            const certLines = doc.splitTextToSize(cert, sidebarWidth - 15);
+            doc.text(certLines, margin + 10, sidebarY);
+            sidebarY += (certLines.length * 5) + 8;
+        });
+    }
+    
+    // ===== MAIN CONTENT AREA =====
+    let mainY = margin + 70; // Start below the header
+    
+    // ===== PROFESSIONAL SUMMARY =====
+    doc.setDrawColor(...secondaryColor);
+    doc.setLineWidth(1);
+    doc.line(mainContentStart, mainY, mainContentStart + mainContentWidth, mainY);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.text("PROFESSIONAL SUMMARY", mainContentStart, mainY + 15);
+    
+    mainY += 25;
+    
+    // Summary content
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...textColor);
+    
+    const summary = userData.summary || 
+        "Strategic accounting professional with comprehensive expertise in financial analysis, reporting, and tax preparation. Adept at interpreting complex financial data to drive business decisions and ensure regulatory compliance. Combines technical accounting knowledge with strong communication skills to translate financial concepts for stakeholders at all levels.";
+    
+    const summaryLines = doc.splitTextToSize(summary, mainContentWidth - 10);
+    doc.text(summaryLines, mainContentStart, mainY);
+    
+    mainY += summaryLines.length * 6 + 15;
+    
+    // ===== EXPERIENCE SECTION =====
+    doc.setDrawColor(...secondaryColor);
+    doc.line(mainContentStart, mainY, mainContentStart + mainContentWidth, mainY);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.text("PROFESSIONAL EXPERIENCE", mainContentStart, mainY + 15);
+    
+    mainY += 25;
+    
+    // Create space for experiences
+    if (userData.experiences && userData.experiences.length > 0) {
+        userData.experiences.forEach((exp, index) => {
+            // Check if we need a new page
+            if (mainY > pageHeight - 70) {
+                doc.addPage();
+                
+                // Continue sidebar on new page
+                doc.setFillColor(...primaryColor);
+                doc.rect(margin, margin, sidebarWidth, pageHeight - (margin * 2), 'F');
+                
+                mainY = margin + 30;
+            }
+            
+            // Job title with accent color
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(...secondaryColor);
+            doc.text(exp.job_title || 'Senior Accountant', mainContentStart, mainY);
+            
+            mainY += 6;
+            
+            // Company name and timeframe on same line
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(...primaryColor);
+            doc.text(exp.company_name || 'Company Name', mainContentStart, mainY);
+            
+            // Right-aligned date
+            const dateText = exp.currently_working ? 
+                `${formatDate(exp.start_date)} - Present` : 
+                `${formatDate(exp.start_date)} - ${formatDate(exp.end_date)}`;
+            
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(10);
+            doc.text(dateText, mainContentStart + mainContentWidth, mainY, {align: 'right'});
+            
+            mainY += 6;
+            
+            // Location
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(...textColor);
+            doc.text(exp.location || 'Location', mainContentStart, mainY);
+            
+            mainY += 10;
+            
+            // Job description with enhanced bullet points
+            let description = exp.description || 
+                "• Led month-end close process, reducing completion time by 30% through process improvements\n" +
+                "• Prepared and analyzed financial statements for executive team and external stakeholders\n" +
+                "• Ensured compliance with GAAP standards and tax regulations\n" +
+                "• Implemented new financial software that improved reporting accuracy by 25%";
+            
+            // Format bullet points
+            let bullets;
+            if (description.includes('•') || description.includes('-')) {
+                bullets = description.split(/•|-/).filter(item => item.trim().length > 0);
+            } else {
+                bullets = description.split('.').filter(item => item.trim().length > 0);
+            }
+            
+            bullets.forEach(bullet => {
+                if (bullet.trim()) {
+                    // Custom bullet point
+                    doc.setFillColor(...secondaryColor);
+                    doc.circle(mainContentStart + 3, mainY - 3, 1.5, 'F');
+                    
+                    // Bullet text with indent
+                    const bulletText = doc.splitTextToSize(bullet.trim(), mainContentWidth - 15);
+                    doc.text(bulletText, mainContentStart + 10, mainY);
+                    mainY += bulletText.length * 6 + 2;
+                }
+            });
+            
+            mainY += 12; // Space after each experience
+        });
+    } else {
+        // Sample experiences if none provided
+        addSampleExperiences(doc);
+    }
+    
+    // ===== EDUCATION SECTION =====
+    // Check if we need a new page
+    if (mainY > pageHeight - 70) {
+        doc.addPage();
+        
+        // Continue sidebar on new page
+        doc.setFillColor(...primaryColor);
+        doc.rect(margin, margin, sidebarWidth, pageHeight - (margin * 2), 'F');
+        
+        mainY = margin + 30;
+    }
+    
+    doc.setDrawColor(...secondaryColor);
+    doc.line(mainContentStart, mainY, mainContentStart + mainContentWidth, mainY);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.text("EDUCATION", mainContentStart, mainY + 15);
+    
+    mainY += 25;
+    
+    // Education entries
+    if (userData.education && userData.education.length > 0) {
+        userData.education.forEach(edu => {
+            // Degree
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(...secondaryColor);
+            doc.text(edu.degree || "Bachelor of Science in Accounting", mainContentStart, mainY);
+            
+            mainY += 6;
+            
+            // University and graduation date
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(...primaryColor);
+            doc.text(edu.university || "Bellows College", mainContentStart, mainY);
+            
+            // Right-aligned graduation date
+            doc.setFont("helvetica", "italic");
+            doc.text(formatDate(edu.graduation_date) || "June 20XX", mainContentStart + mainContentWidth, mainY, {align: 'right'});
+            
+            mainY += 6;
+            
+            // Additional educational details
+            if (edu.gpa || edu.honors || edu.relevant_coursework) {
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(...textColor);
+                
+                let details = [];
+                if (edu.gpa) details.push(`GPA: ${edu.gpa}`);
+                if (edu.honors) details.push(edu.honors);
+                if (edu.relevant_coursework) details.push(`Relevant coursework: ${edu.relevant_coursework}`);
+                
+                doc.text(details.join(" | "), mainContentStart, mainY);
+                mainY += 6;
+            } else {
+                // Default educational details
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(...textColor);
+                doc.text("GPA: 3.8 | Distinguished member of university's Accounting Society", mainContentStart, mainY);
+                mainY += 6;
+            }
+            
+            mainY += 10;
+        });
+    } else {
+        // Default education entry
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...secondaryColor);
+        doc.text("Bachelor of Science in Accounting, Minor in Business Administration", mainContentStart, mainY);
+        
+        mainY += 6;
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...primaryColor);
+        doc.text("Bellows College", mainContentStart, mainY);
+        
+        doc.setFont("helvetica", "italic");
+        doc.text("June 20XX", mainContentStart + mainContentWidth, mainY, {align: 'right'});
+        
+        mainY += 6;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...textColor);
+        doc.text("GPA: 3.8 | Distinguished member of university's Accounting Society", mainContentStart, mainY);
+        
+        mainY += 15;
+    }
+    
+    // ===== PROFESSIONAL AFFILIATIONS (if available) =====
+    if ((userData.affiliations && userData.affiliations.length > 0) || !userData.affiliations) {
+        if (mainY > pageHeight - 70) {
+            doc.addPage();
+            
+            // Continue sidebar on new page
+            doc.setFillColor(...primaryColor);
+            doc.rect(margin, margin, sidebarWidth, pageHeight - (margin * 2), 'F');
+            
+            mainY = margin + 30;
+        }
+        
+        doc.setDrawColor(...secondaryColor);
+        doc.line(mainContentStart, mainY, mainContentStart + mainContentWidth, mainY);
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(...primaryColor);
+        doc.text("PROFESSIONAL AFFILIATIONS", mainContentStart, mainY + 15);
+        
+        mainY += 25;
+        
+        // Affiliations
+        const affiliations = userData.affiliations || [
+            "American Institute of Certified Public Accountants (AICPA)",
+            "Association of Certified Fraud Examiners (ACFE)"
+        ];
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...textColor);
+        
+        affiliations.forEach(affiliation => {
+            // Custom bullet point
+            doc.setFillColor(...secondaryColor);
+            doc.circle(mainContentStart + 3, mainY - 3, 1.5, 'F');
+            
+            // Affiliation text
+            const affText = doc.splitTextToSize(affiliation, mainContentWidth - 15);
+            doc.text(affText, mainContentStart + 10, mainY);
+            mainY += affText.length * 6 + 6;
+        });
+    }
+    
+    // Footer with subtle divider and page numbers
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        
+        doc.setDrawColor(...accentColor);
+        doc.setLineWidth(0.5);
+        doc.line(mainContentStart, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(...secondaryColor);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, {align: 'right'});
     }
     
     // Helper function for date formatting
     function formatDate(dateString) {
-        if (!dateString) return 'N/A';
+        if (!dateString) return 'MM/YYYY';
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString; // Return original if invalid
+            if (isNaN(date.getTime())) return dateString;
             
-            const month = date.toLocaleString('default', { month: 'short' });
+            // Format as MM/YYYY
+            const month = date.getMonth() + 1;
             const year = date.getFullYear();
-            return `${month} ${year}`;
+            return `${month < 10 ? '0' + month : month}/${year}`;
         } catch (e) {
-            return dateString; // Fallback to original string
+            return dateString || 'MM/YYYY';
         }
     }
     
-    // Header bar
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 12, 'F');
-    
-    // Name and Contact Header Section
-    let currentY = margin;
-    
-    // Name with distinctive styling
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(...primaryColor);
-    doc.text(userData.user_name.toUpperCase(), margin, currentY);
-    
-    // Get width of name for positioning
-    const nameWidth = doc.getTextWidth(userData.user_name.toUpperCase());
-    
-    // Professional title (if available)
-    if (userData.experiences && userData.experiences.length > 0) {
-        doc.setFont("helvetica", "italic");
+    // Helper function to add sample experiences
+    function addSampleExperiences(doc) {
+        // Experience 1
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
-        doc.setTextColor(80, 80, 80);
-        doc.text(userData.experiences[0].job_title, margin, currentY + 8);
-    }
-    
-    // Contact information - aligned right
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(60, 60, 60);
-    
-    let contactY = currentY - 5;
-    const contactX = pageWidth - margin;
-    
-    if (userData.email) {
-        doc.text(userData.email, contactX, contactY, { align: 'right' });
-        contactY += 5;
-    }
-    
-    if (userData.mobile) {
-        doc.text(userData.mobile, contactX, contactY, { align: 'right' });
-        contactY += 5;
-    }
-    
-    if (userData.location) {
-        doc.text(userData.location, contactX, contactY, { align: 'right' });
-        contactY += 5;
-    }
-    
-    if (userData.linkedin) {
-        doc.text(userData.linkedin, contactX, contactY, { align: 'right' });
-        contactY += 5;
-    }
-    
-    if (userData.github) {
-        doc.text(userData.github, contactX, contactY, { align: 'right' });
-    }
-    
-    currentY += 15;
-    
-    // Professional Summary Section
-    if (userData.summary) {
-        currentY += 8;
+        doc.setTextColor(...secondaryColor);
+        doc.text("Senior Accountant", mainContentStart, mainY);
         
-        // Section header with accent bar
-        doc.setFillColor(...secondaryColor);
-        doc.rect(margin, currentY, 5, 5, 'F');
+        mainY += 6;
         
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
+        doc.setFontSize(11);
         doc.setTextColor(...primaryColor);
-        doc.text("PROFESSIONAL SUMMARY", margin + 12, currentY + 4);
+        doc.text("ABC Financial Services", mainContentStart, mainY);
         
-        // Horizontal line
-        doc.setDrawColor(...secondaryColor);
-        doc.setLineWidth(0.5);
-        doc.line(margin + 12 + doc.getTextWidth("PROFESSIONAL SUMMARY") + 5, currentY + 2, pageWidth - margin, currentY + 2);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text("01/20XX - Present", mainContentStart + mainContentWidth, mainY, {align: 'right'});
         
-        currentY += 10;
+        mainY += 6;
         
-        // Summary content
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(50, 50, 50);
-        const summaryLines = doc.splitTextToSize(userData.summary, contentWidth);
-        doc.text(summaryLines, margin, currentY);
-        currentY += summaryLines.length * 4.5 + 5;
-    }
-    
-    // Skills Section
-    currentY = checkPageOverflow(currentY, 50);
-    currentY += 5;
-    
-    // Section header with accent bar
-    doc.setFillColor(...secondaryColor);
-    doc.rect(margin, currentY, 5, 5, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
-    doc.text("TECHNICAL SKILLS", margin + 12, currentY + 4);
-    
-    // Horizontal line
-    doc.setDrawColor(...secondaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(margin + 12 + doc.getTextWidth("TECHNICAL SKILLS") + 5, currentY + 2, pageWidth - margin, currentY + 2);
-    
-    currentY += 10;
-    
-    // Skills display with pill-style boxes
-    if (userData.skills && userData.skills.length > 0) {
-        doc.setFontSize(9);
+        doc.setTextColor(...textColor);
+        doc.text("San Francisco, CA", mainContentStart, mainY);
         
-        // Group skills in rows
-        const skillsPerRow = 3;
-        let rowX = margin;
-        let pillHeight = 7;
-        let pillMargin = 5;
+        mainY += 10;
         
-        for (let i = 0; i < userData.skills.length; i++) {
-            const skill = userData.skills[i];
-            const skillWidth = doc.getTextWidth(skill) + 10; // Add padding
-            
-            // Check if we need to start a new row
-            if (rowX + skillWidth > pageWidth - margin) {
-                rowX = margin;
-                currentY += pillHeight + pillMargin;
-            }
-            
-            // Check for page overflow
-            currentY = checkPageOverflow(currentY, pillHeight + 5);
-            
-            // Draw pill background
-            doc.setFillColor(...accentColor);
-            doc.roundedRect(rowX, currentY - 5, skillWidth, pillHeight, 2, 2, 'F');
-            
-            // Draw skill text
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(40, 40, 40);
-            doc.text(skill, rowX + 5, currentY);
-            
-            // Move to next pill position
-            rowX += skillWidth + pillMargin;
-        }
+        // Bullet points
+        const bullets1 = [
+            "Managed financial reporting for clients with combined annual revenues of $25M+, ensuring 100% compliance with federal and state regulations",
+            "Implemented new tax planning strategies resulting in average client tax savings of 12%",
+            "Streamlined month-end close process, reducing completion time from 10 days to 5 days",
+            "Led team of 3 junior accountants, providing mentorship and technical guidance"
+        ];
         
-        currentY += pillHeight + 8;
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("No skills provided", margin, currentY);
-        currentY += 8;
-    }
-    
-    // Experience Section
-    currentY = checkPageOverflow(currentY, 60);
-    currentY += 5;
-    
-    // Section header with accent bar
-    doc.setFillColor(...secondaryColor);
-    doc.rect(margin, currentY, 5, 5, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
-    doc.text("PROFESSIONAL EXPERIENCE", margin + 12, currentY + 4);
-    
-    // Horizontal line
-    doc.setDrawColor(...secondaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(margin + 12 + doc.getTextWidth("PROFESSIONAL EXPERIENCE") + 5, currentY + 2, pageWidth - margin, currentY + 2);
-    
-    currentY += 10;
-    
-    if (userData.experiences && userData.experiences.length > 0) {
-        userData.experiences.forEach((exp, index) => {
-            currentY = checkPageOverflow(currentY, 30);
+        bullets1.forEach(bullet => {
+            // Custom bullet point
+            doc.setFillColor(...secondaryColor);
+            doc.circle(mainContentStart + 3, mainY - 3, 1.5, 'F');
             
-            // Job title and company header
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(...primaryColor);
-            doc.text(exp.job_title, margin, currentY);
-            
-            // Date range aligned right
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(80, 80, 80);
-            const dateText = `${formatDate(exp.start_date)} - ${exp.currently_working ? 'Present' : formatDate(exp.end_date)}`;
-            doc.text(dateText, pageWidth - margin, currentY, { align: 'right' });
-            
-            currentY += 5;
-            
-            // Company and location
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(11);
-            doc.setTextColor(50, 50, 50);
-            
-            let companyText = exp.company_name;
-            if (exp.location) {
-                companyText += ` | ${exp.location}`;
-            }
-            
-            doc.text(companyText, margin, currentY);
-            currentY += 6;
-            
-            // Subtle separator
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.2);
-            doc.line(margin, currentY, pageWidth - margin, currentY);
-            currentY += 5;
-            
-            // Description with enhanced bullet points
-            if (exp.description) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.setTextColor(60, 60, 60);
-                
-                // Convert description to bullet points
-                const bulletPoints = exp.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                const formattedPoints = bulletPoints.length > 1 ? 
-                    bulletPoints : 
-                    exp.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedPoints.forEach(point => {
-                    currentY = checkPageOverflow(currentY);
-                    
-                    // Modern arrow bullet
-                    doc.setFont("zapfdingbats");
-                    doc.text("➤", margin, currentY);
-                    
-                    // Bullet text
-                    doc.setFont("helvetica", "normal");
-                    const bulletText = doc.splitTextToSize(point.trim(), contentWidth - 10);
-                    doc.text(bulletText, margin + 7, currentY);
-                    currentY += bulletText.length * 4.5 + 2;
-                });
-            }
-            
-            currentY += 10; // Space between experiences
+            // Bullet text with indent
+            const bulletText = doc.splitTextToSize(bullet, mainContentWidth - 15);
+            doc.text(bulletText, mainContentStart + 10, mainY);
+            mainY += bulletText.length * 6 + 2;
         });
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("No work experience provided", margin, currentY);
-        currentY += 10;
-    }
-    
-    // Education Section
-    currentY = checkPageOverflow(currentY, 60);
-    currentY += 5;
-    
-    // Section header with accent bar
-    doc.setFillColor(...secondaryColor);
-    doc.rect(margin, currentY, 5, 5, 'F');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
-    doc.text("EDUCATION", margin + 12, currentY + 4);
-    
-    // Horizontal line
-    doc.setDrawColor(...secondaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(margin + 12 + doc.getTextWidth("EDUCATION") + 5, currentY + 2, pageWidth - margin, currentY + 2);
-    
-    currentY += 10;
-    
-    // Filter out education entries with empty institution names
-    const validEducationEntries = [
-        { type: "Graduation", school: userData.ug_college, year: userData.Passout_Year, score: userData.Graduation_Percentage },
-        { type: "12th", school: userData.twelfth_school, year: userData.twelfth_year, score: userData.twelfth_percentage },
-        { type: "10th", school: userData.tenth_school, year: userData.tenth_year, score: userData.Percentage_10 }
-    ].filter(edu => edu.school && edu.school.trim() !== "");
-    
-    if (validEducationEntries.length > 0) {
-        validEducationEntries.forEach((edu, index) => {
-            currentY = checkPageOverflow(currentY, 25);
-            
-            // Modern card-like design for each education entry
-            doc.setFillColor(...accentColor);
-            doc.roundedRect(margin, currentY - 5, contentWidth, 30, 2, 2, 'F');
-            
-            // Degree/type
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(...primaryColor);
-            doc.text(edu.type, margin + 8, currentY + 5);
-            
-            // Year aligned right
-            if (edu.year) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                doc.text(edu.year.toString(), pageWidth - margin - 8, currentY + 5, { align: 'right' });
-            }
-            
-            // Institution
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(50, 50, 50);
-            doc.text(edu.school, margin + 8, currentY + 15);
-            
-            // Score
-            if (edu.score) {
-                doc.setFont("helvetica", "italic");
-                doc.setTextColor(80, 80, 80);
-                doc.text(`Score: ${edu.score}`, pageWidth - margin - 8, currentY + 15, { align: 'right' });
-            }
-            
-            currentY += 35; // Move to next education entry
-        });
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("No education details provided", margin, currentY);
-        currentY += 10;
-    }
-    
-    // Projects Section
-    if (userData.projects && userData.projects.length > 0) {
-        currentY = checkPageOverflow(currentY, 60);
-        currentY += 5;
         
-        // Section header with accent bar
-        doc.setFillColor(...secondaryColor);
-        doc.rect(margin, currentY, 5, 5, 'F');
+        mainY += 12;
+        
+        // Experience 2
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...secondaryColor);
+        doc.text("Staff Accountant", mainContentStart, mainY);
+        
+        mainY += 6;
         
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
+        doc.setFontSize(11);
         doc.setTextColor(...primaryColor);
-        doc.text("PROJECTS", margin + 12, currentY + 4);
+        doc.text("XYZ Corporation", mainContentStart, mainY);
         
-        // Horizontal line
-        doc.setDrawColor(...secondaryColor);
-        doc.setLineWidth(0.5);
-        doc.line(margin + 12 + doc.getTextWidth("PROJECTS") + 5, currentY + 2, pageWidth - margin, currentY + 2);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text("03/20XX - 12/20XX", mainContentStart + mainContentWidth, mainY, {align: 'right'});
         
-        currentY += 10;
-        
-        userData.projects.forEach((project, index) => {
-            currentY = checkPageOverflow(currentY, 30);
-            
-            // Project title with background highlight
-            doc.setFillColor(...accentColor);
-            doc.rect(margin, currentY - 2, contentWidth, 1, 'F');
-            
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(...primaryColor);
-            doc.text(project.title, margin, currentY + 6);
-            
-            // Date range aligned right
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            const projDateText = `${formatDate(project.start_date)} - ${project.currently_ongoing ? 'Present' : formatDate(project.end_date)}`;
-            doc.text(projDateText, pageWidth - margin, currentY + 6, { align: 'right' });
-            
-            currentY += 12;
-            
-            // Project description
-            if (project.description) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                doc.setTextColor(60, 60, 60);
-                
-                // Format description as bullet points
-                const projectPoints = project.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                const formattedProjectPoints = projectPoints.length > 1 ? 
-                    projectPoints : 
-                    project.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedProjectPoints.forEach(point => {
-                    currentY = checkPageOverflow(currentY);
-                    
-                    // Diamond bullet
-                    doc.setFont("zapfdingbats");
-                    doc.text("❖", margin, currentY);
-                    
-                    // Bullet text
-                    doc.setFont("helvetica", "normal");
-                    const bulletText = doc.splitTextToSize(point.trim(), contentWidth - 10);
-                    doc.text(bulletText, margin + 7, currentY);
-                    currentY += bulletText.length * 4.5 + 2;
-                });
-            }
-            
-            // Technologies used
-            if (project.technologies) {
-                currentY = checkPageOverflow(currentY);
-                
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.setTextColor(80, 80, 80);
-                doc.text("Technologies:", margin, currentY);
-                
-                doc.setFont("helvetica", "normal");
-                const techText = Array.isArray(project.technologies) ? 
-                    project.technologies.join(", ") : project.technologies;
-                
-                const techLines = doc.splitTextToSize(techText, contentWidth - 40);
-                doc.text(techLines, margin + 35, currentY);
-                currentY += techLines.length * 4 + 2;
-            }
-            
-            // Project link
-            if (project.link) {
-                currentY = checkPageOverflow(currentY);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(0, 102, 204); // Link color
-                doc.text(`Link: ${project.link}`, margin, currentY);
-                currentY += 5;
-            }
-            
-            currentY += 8; // Space between projects
-        });
-    }
-    
-    // Footer with page numbers
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+        mainY += 6;
         
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 4, { align: 'right' });
+        doc.setFontSize(10);
+        doc.setTextColor(...textColor);
+        doc.text("Oakland, CA", mainContentStart, mainY);
+        
+        mainY += 10;
+        
+        // Bullet points
+        const bullets2 = [
+            "Conducted monthly reconciliations for accounts with combined values exceeding $5M",
+            "Prepared quarterly and annual financial statements with 99.8% accuracy",
+            "Assisted in annual audit preparation, reducing preparation time by 20%",
+            "Created automated expense tracking system that improved reporting efficiency by 35%"
+        ];
+        
+        bullets2.forEach(bullet => {
+            // Custom bullet point
+            doc.setFillColor(...secondaryColor);
+            doc.circle(mainContentStart + 3, mainY - 3, 1.5, 'F');
+            
+            // Bullet text with indent
+            const bulletText = doc.splitTextToSize(bullet, mainContentWidth - 15);
+            doc.text(bulletText, mainContentStart + 10, mainY);
+            mainY += bulletText.length * 6 + 2;
+        });
+        
+        mainY += 12;
     }
 }
 // Template 3 - Executive Minimalist Resume with Horizontal Sections
@@ -2371,1031 +2609,1098 @@ function generateTemplate3(doc, userData) {
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
     
-    // Set document properties with keywords for ATS
+    // Modern color scheme with accent header
+    const headerColor = [75, 0, 130]; // Deep purple
+    const accentColor = [147, 112, 219]; // Medium purple
+    const highlightColor = [230, 230, 250]; // Lavender (very light purple)
+    const bodyTextColor = [50, 50, 50]; // Dark gray for body text
+    
+    // Enhanced document properties for ATS optimization
     doc.setProperties({
-        title: `${userData.user_name} - ${userData.experiences?.[0]?.job_title || 'Professional'} Resume`,
-        subject: `Resume - ${userData.skills.slice(0, 5).join(', ')}`,
-        author: userData.user_name,
-        keywords: userData.skills.join(', ') // Keywords help with ATS scanning
+        title: `${userData.user_name || 'Professional'} Resume - ${userData.job_title || 'Accounting'}`,
+        subject: `${userData.job_title || 'Accounting Professional'} with expertise in ${userData.skills?.slice(0, 3).join(', ') || 'financial reporting, tax preparation, GAAP'}`,
+        author: userData.user_name || 'Accounting Professional',
+        keywords: `${userData.job_title || 'Accountant'}, ${userData.skills?.join(', ') || 'financial analysis, tax preparation, GAAP'}, ${userData.certifications?.join(', ') || 'CPA'}, accounting professional, finance specialist`
     });
 
-    // Color scheme - Executive burgundy and charcoal
-    const primaryColor = [128, 0, 32]; // Burgundy/wine red
-    const secondaryColor = [50, 50, 50]; // Charcoal
-    const accentColor = [180, 180, 180]; // Light gray
-    const highlightColor = [200, 160, 165]; // Light burgundy for highlights
+    // ===== HEADER WITH NAME BANNER =====
+    // Create striking header banner
+    doc.setFillColor(...headerColor);
+    doc.rect(margin, margin, contentWidth, 25, 'F');
     
-    let currentY = 20;
-    
-    // Header with minimalist top border
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(2);
-    doc.line(margin, currentY - 10, pageWidth - margin, currentY - 10);
-    
-    // Name and title in large, elegant typography
+    // Name in header
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.setTextColor(...primaryColor);
-    doc.text(userData.user_name.toUpperCase(), margin, currentY);
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255); // White text
+    doc.text(userData.user_name || "YOUR NAME", margin + 5, margin + 17);
     
-    // Professional title and contact info in horizontal layout
-    if (userData.experiences && userData.experiences.length > 0) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(12);
-        doc.setTextColor(...secondaryColor);
-        doc.text(userData.experiences[0].job_title, pageWidth - margin, currentY, { align: 'right' });
-    }
+    // Job title with right alignment
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text(userData.job_title || "ACCOUNTING PROFESSIONAL", pageWidth - margin - 5, margin + 17, {align: 'right'});
     
-    currentY += 15;
-    
-    // Contact information in elegant horizontal bar
+    // ===== CONTACT BAR =====
+    // Contact info bar with subtle background
     doc.setFillColor(...highlightColor);
-    doc.rect(0, currentY - 5, pageWidth, 24, 'F');
+    doc.rect(margin, margin + 25, contentWidth, 20, 'F');
     
-    // Contact details in centered, spaced format
+    // Contact information in a single line with separators
+    const email = userData.email || "your.email@example.com";
+    const phone = userData.mobile || "(555) 123-4567";
+    const location = userData.location || "City, State";
+    const linkedin = userData.linkedin || "linkedin.com/in/yourprofile";
+    
+    const contactText = `${email} | ${phone} | ${location} | ${linkedin}`;
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...bodyTextColor);
+    doc.text(contactText, pageWidth/2, margin + 38, {align: 'center'});
+    
+    let currentY = margin + 55;
+    
+    // ===== PROFESSIONAL SUMMARY WITH ACCENT BOX =====
+    // Summary header with accent
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...headerColor);
+    doc.text("PROFESSIONAL SUMMARY", margin, currentY);
+    
+    // Accent line under header
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.5);
+    doc.line(margin, currentY + 5, margin + 60, currentY + 5);
+    
+    currentY += 12;
+    
+    // Summary content with left border accent
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(2);
+    doc.line(margin, currentY, margin, currentY + 30); // Height will adjust based on content
+    
+    // Summary text
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.setTextColor(...secondaryColor);
+    doc.setTextColor(...bodyTextColor);
     
-    // Gather contact elements
-    const contactElements = [];
-    if (userData.email) contactElements.push(`Email: ${userData.email}`);
-    if (userData.mobile) contactElements.push(`Phone: ${userData.mobile}`);
-    if (userData.location) contactElements.push(`Location: ${userData.location}`);
-    if (userData.linkedin) contactElements.push(`LinkedIn: ${userData.linkedin}`);
-    if (userData.github) contactElements.push(`GitHub: ${userData.github}`);
+    const summary = userData.summary || 
+        "Detail-oriented accounting professional with extensive experience in financial reporting, tax preparation, and regulatory compliance. Skilled in analyzing complex financial data to improve business operations and support strategic decision-making. Known for precision, integrity, and the ability to communicate financial concepts clearly to stakeholders at all levels.";
     
-    // Calculate spacing for horizontal arrangement
-    const elementWidth = contactElements.length > 0 ? contentWidth / contactElements.length : 0;
+    const summaryLines = doc.splitTextToSize(summary, contentWidth - 10);
+    doc.text(summaryLines, margin + 7, currentY);
     
-    // Place contact elements horizontally
-    contactElements.forEach((element, index) => {
-        const xPosition = margin + (elementWidth * index) + (elementWidth / 2);
-        doc.text(element, xPosition, currentY + 8, { align: 'center' });
-    });
+    // Adjust line height based on content
+    const summaryHeight = summaryLines.length * 6;
+    if (summaryHeight > 30) {
+        doc.line(margin, currentY + 30, margin, currentY + summaryHeight); // Extend line if needed
+    }
     
-    currentY += 24;
+    currentY += summaryHeight + 15;
     
-    // Professional Summary in clean box if available
-    if (userData.summary) {
-        currentY += 10;
+    // ===== SKILLS SECTION - HORIZONTAL BOXES =====
+    // Skills header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...headerColor);
+    doc.text("CORE COMPETENCIES", margin, currentY);
+    
+    // Accent line under header
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.5);
+    doc.line(margin, currentY + 5, margin + 60, currentY + 5);
+    
+    currentY += 15;
+    
+    // Create skill boxes in a grid format
+    const skillsList = userData.skills && userData.skills.length > 0 ? 
+        userData.skills.slice(0, 9) : // Limit to 9 skills for layout
+        ["Financial Analysis", "Tax Preparation", "GAAP Compliance", 
+         "Financial Reporting", "Audit Support", "QuickBooks", 
+         "Microsoft Excel", "Strategic Planning", "Process Improvement"];
+    
+    const boxWidth = contentWidth / 3 - 4;
+    const boxHeight = 16;
+    const boxMargin = 2;
+    
+    // Draw skill boxes in a 3x3 grid
+    for (let i = 0; i < Math.min(skillsList.length, 9); i++) {
+        const row = Math.floor(i / 3);
+        const col = i % 3;
+        
+        const boxX = margin + (col * (boxWidth + boxMargin * 2));
+        const boxY = currentY + (row * (boxHeight + boxMargin * 2));
+        
+        // Box background
+        doc.setFillColor(...highlightColor);
+        doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, 'F');
+        
+        // Box border
         doc.setDrawColor(...accentColor);
         doc.setLineWidth(0.5);
-        doc.roundedRect(margin, currentY, contentWidth, 40, 2, 2, 'D');
+        doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, 'S');
         
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(...primaryColor);
-        doc.text("PROFESSIONAL SUMMARY", margin + 5, currentY + 10);
-        
+        // Skill text
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(...secondaryColor);
-        const summaryLines = doc.splitTextToSize(userData.summary, contentWidth - 10);
-        doc.text(summaryLines, margin + 5, currentY + 20);
-        
-        currentY += 50;
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text(skillsList[i], boxX + boxWidth/2, boxY + boxHeight/2 + 3, {align: 'center'});
     }
     
-    // MAIN CONTENT LAYOUT - Three column grid for Skills
-    currentY += 5;
+    currentY += 3 * (boxHeight + boxMargin * 2) + 15;
     
-    // Section heading with burgundy underline
+    // ===== EXPERIENCE SECTION =====
+    // Experience header
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(...primaryColor);
-    doc.text("PROFESSIONAL SKILLS", margin, currentY);
-    
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(1);
-    doc.line(margin, currentY + 4, margin + 70, currentY + 4);
-    
-    currentY += 15;
-    
-    // Skills in 3-column grid with elegant styling
-    if (userData.skills && userData.skills.length > 0) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(...secondaryColor);
-        
-        const columnWidth = contentWidth / 3;
-        let skillsPerColumn = Math.ceil(userData.skills.length / 3);
-        
-        // Limit to reasonable number to prevent overflow
-        const maxSkillsToShow = Math.min(userData.skills.length, 21);
-        
-        for (let i = 0; i < maxSkillsToShow; i++) {
-            const columnIndex = Math.floor(i / skillsPerColumn);
-            const rowIndex = i % skillsPerColumn;
-            
-            const xPos = margin + (columnIndex * columnWidth);
-            const yPos = currentY + (rowIndex * 6);
-            
-            // Check if we need a new page
-            if (yPos > pageHeight - 40) {
-                doc.addPage();
-                currentY = margin + 10;
-                // Reset positioning for new page
-                i = i - rowIndex;
-                continue;
-            }
-            
-            doc.setFillColor(...primaryColor);
-            doc.circle(xPos + 2, yPos - 2, 1, 'F');
-            doc.text(userData.skills[i], xPos + 6, yPos);
-        }
-        
-        currentY += (skillsPerColumn * 6) + 10;
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("No skills provided", margin, currentY);
-        currentY += 15;
-    }
-    
-    // Work Experience Section with elegant timeline-style layout
-    // Check if we need a new page
-    if (currentY > pageHeight - 60) {
-        doc.addPage();
-        currentY = margin + 10;
-    }
-    
-    // Section heading with burgundy underline
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setTextColor(...headerColor);
     doc.text("PROFESSIONAL EXPERIENCE", margin, currentY);
     
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(1);
-    doc.line(margin, currentY + 4, margin + 100, currentY + 4);
+    // Accent line under header
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.5);
+    doc.line(margin, currentY + 5, margin + 60, currentY + 5);
     
     currentY += 15;
     
-    // Timeline-style vertical line
-    const timelineX = margin + 8;
-    let timelineStartY = currentY;
-    
+    // Create space for experiences
     if (userData.experiences && userData.experiences.length > 0) {
         userData.experiences.forEach((exp, index) => {
             // Check if we need a new page
-            if (currentY > pageHeight - 50) {
-                // Draw timeline on current page
-                doc.setDrawColor(...accentColor);
-                doc.setLineWidth(1);
-                doc.line(timelineX, timelineStartY, timelineX, pageHeight - margin);
-                
-                // Add new page
+            if (currentY > pageHeight - 70) {
                 doc.addPage();
                 currentY = margin + 20;
-                timelineStartY = currentY;
-                
-                // Restart timeline heading on new page if needed
-                if (index > 0) {
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(16);
-                    doc.setTextColor(...primaryColor);
-                    doc.text("PROFESSIONAL EXPERIENCE (cont.)", margin, currentY - 10);
-                    
-                    doc.setDrawColor(...primaryColor);
-                    doc.setLineWidth(1);
-                    doc.line(margin, currentY - 6, margin + 130, currentY - 6);
-                }
             }
             
-            // Timeline dot
-            doc.setFillColor(...primaryColor);
-            doc.circle(timelineX, currentY, 3, 'F');
+            // Experience header with job title and company
+            const jobTitle = exp.job_title || 'Senior Accountant';
+            const companyName = exp.company_name || 'ABC Financial Services';
             
-            // Job info with elegant spacing
+            // Job title and company with different styling
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(12);
-            doc.setTextColor(...secondaryColor);
-            doc.text(exp.job_title.toUpperCase(), timelineX + 15, currentY);
-            
-            // Dates aligned right with elegant typography
-            const dateText = `${formatDate(exp.start_date)} - ${exp.currently_working ? 'Present' : formatDate(exp.end_date)}`;
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            doc.text(dateText, pageWidth - margin, currentY, { align: 'right' });
-            
-            currentY += 7;
-            
-            // Company with location
-            doc.setFont("helvetica", "normal");
             doc.setFontSize(11);
-            let companyText = exp.company_name;
-            if (exp.location) {
-                companyText += ` | ${exp.location}`;
-            }
-            doc.text(companyText, timelineX + 15, currentY);
+            doc.setTextColor(...accentColor);
+            doc.text(jobTitle, margin, currentY);
             
-            currentY += 10;
+            // Company name
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(...headerColor);
+            doc.text(companyName, margin + 75, currentY, {align: 'left'});
             
-            // Description with enhanced formatting
-            if (exp.description) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                
-                const bulletPoints = exp.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                // If no explicit bullet points, create from paragraph
-                const formattedPoints = bulletPoints.length > 1 ? 
-                    bulletPoints : 
-                    exp.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedPoints.forEach(point => {
-                    // Check for page overflow
-                    if (currentY > pageHeight - 30) {
-                        // Complete timeline on current page
-                        doc.setDrawColor(...accentColor);
-                        doc.setLineWidth(1);
-                        doc.line(timelineX, timelineStartY, timelineX, pageHeight - margin);
-                        
-                        // Add new page
-                        doc.addPage();
-                        currentY = margin + 20;
-                        timelineStartY = currentY;
-                    }
-                    
-                    // Add diamond bullet point
-                    doc.setFillColor(...highlightColor);
-                    doc.rect(timelineX + 15, currentY - 3, 3, 3, 'F');
-                    
-                    // Text with hanging indent
-                    const bulletWidth = pageWidth - timelineX - margin - 25;
-                    const bulletText = doc.splitTextToSize(point.trim(), bulletWidth);
-                    doc.text(bulletText, timelineX + 22, currentY);
-                    currentY += bulletText.length * 5;
-                });
-                
-                currentY += 5;
+            // Location and date with right alignment
+            const location = exp.location || 'City, State';
+            const dateText = exp.currently_working ? 
+                `${formatDate(exp.start_date)} - Present` : 
+                `${formatDate(exp.start_date)} - ${formatDate(exp.end_date)}`;
+            
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.setTextColor(...bodyTextColor);
+            doc.text(`${location} | ${dateText}`, pageWidth - margin, currentY, {align: 'right'});
+            
+            currentY += 8;
+            
+            // Experience description with enhanced bullet points
+            let description = exp.description || 
+                "• Managed monthly financial close process, ensuring accurate and timely reporting\n" +
+                "• Prepared tax returns for businesses with revenues of $5M-$50M\n" +
+                "• Conducted financial analysis to identify cost-saving opportunities\n" +
+                "• Collaborated with cross-functional teams to implement financial controls";
+            
+            // Format bullet points
+            let bullets;
+            if (description.includes('•') || description.includes('-')) {
+                bullets = description.split(/•|-/).filter(item => item.trim().length > 0);
+            } else {
+                bullets = description.split('.').filter(item => item.trim().length > 0);
             }
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            
+            bullets.forEach(bullet => {
+                if (bullet.trim()) {
+                    // Custom bullet point with accent color
+                    doc.setFillColor(...accentColor);
+                    doc.circle(margin + 3, currentY - 3, 1.5, 'F');
+                    
+                    // Bullet text with indent
+                    const bulletText = doc.splitTextToSize(bullet.trim(), contentWidth - 15);
+                    doc.text(bulletText, margin + 8, currentY);
+                    currentY += bulletText.length * 5 + 2;
+                }
+            });
+            
+            currentY += 10; // Space between experiences
         });
-        
-        // Complete the timeline
-        doc.setDrawColor(...accentColor);
-        doc.setLineWidth(1);
-        doc.line(timelineX, timelineStartY, timelineX, currentY - 5);
     } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("No work experience provided", margin, currentY);
-        currentY += 15;
+        // Sample experiences if none provided
+        addSampleExperiences(doc);
     }
     
-    // Education in elegant table format
+    // ===== EDUCATION SECTION =====
     // Check if we need a new page
     if (currentY > pageHeight - 80) {
         doc.addPage();
-        currentY = margin + 10;
-    } else {
-        currentY += 15;
+        currentY = margin + 20;
     }
     
-    // Section heading with burgundy underline
+    // Education header
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setTextColor(...headerColor);
     doc.text("EDUCATION", margin, currentY);
     
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(1);
-    doc.line(margin, currentY + 4, margin + 40, currentY + 4);
+    // Accent line under header
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.5);
+    doc.line(margin, currentY + 5, margin + 60, currentY + 5);
     
     currentY += 15;
     
-    // Filter out education entries with empty institution names
-    const validEducationEntries = [
-        ["Graduation", userData.ug_college, userData.Passout_Year, userData.Graduation_Percentage],
-        ["12th", userData.twelfth_school, userData.twelfth_year, userData.twelfth_percentage],
-        ["10th", userData.tenth_school, userData.tenth_year, userData.Percentage_10]
-    ].filter(row => row[1] && row[1].trim() !== "");
-    
-    if (validEducationEntries.length > 0) {
-        // Create elegant education table
-        doc.autoTable({
-            startY: currentY,
-            head: [["Degree", "Institution", "Year", "Score"]],
-            body: validEducationEntries,
-            margin: { left: margin, right: margin },
-            styles: { 
-                fontSize: 10, 
-                cellPadding: 6,
-                overflow: 'linebreak',
-                lineColor: [200, 200, 200]
-            },
-            headStyles: { 
-                fillColor: [...primaryColor],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold'
-            },
-            alternateRowStyles: { 
-                fillColor: [245, 235, 235] // Very light burgundy
-            },
-            columnStyles: {
-                0: { cellWidth: 50 },
-                1: { cellWidth: 'auto' },
-                2: { cellWidth: 30 },
-                3: { cellWidth: 30 }
+    // Education entries with enhanced formatting
+    if (userData.education && userData.education.length > 0) {
+        userData.education.forEach(edu => {
+            // Create education box with subtle background
+            doc.setFillColor(...highlightColor);
+            doc.roundedRect(margin, currentY, contentWidth, 30, 2, 2, 'F');
+            
+            // Degree name
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(...accentColor);
+            doc.text(edu.degree || "Bachelor of Science in Accounting", margin + 5, currentY + 10);
+            
+            // University name
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...headerColor);
+            doc.text(edu.university || "Bellows University", margin + 5, currentY + 18);
+            
+            // Graduation date with right alignment
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.setTextColor(...bodyTextColor);
+            doc.text(formatDate(edu.graduation_date) || "June 20XX", pageWidth - margin - 5, currentY + 10, {align: 'right'});
+            
+            // GPA and honors
+            if (edu.gpa || edu.honors) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.text(`${edu.honors ? edu.honors + ' | ' : ''}GPA: ${edu.gpa || '3.8'}`, pageWidth - margin - 5, currentY + 18, {align: 'right'});
             }
+            
+            currentY += 40; // Space after each education entry
         });
-        currentY = doc.lastAutoTable.finalY + 15;
     } else {
-        doc.setFont("helvetica", "italic");
+        // Default education entry
+        doc.setFillColor(...highlightColor);
+        doc.roundedRect(margin, currentY, contentWidth, 30, 2, 2, 'F');
+        
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.text("No education details provided", margin, currentY);
-        currentY += 15;
+        doc.setTextColor(...accentColor);
+        doc.text("Bachelor of Science in Accounting, Minor in Business Administration", margin + 5, currentY + 10);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...headerColor);
+        doc.text("Bellows University", margin + 5, currentY + 18);
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text("June 20XX", pageWidth - margin - 5, currentY + 10, {align: 'right'});
+        
+        doc.setFont("helvetica", "normal");
+        doc.text("GPA: 3.8 | Cum Laude | Dean's List", pageWidth - margin - 5, currentY + 18, {align: 'right'});
+        
+        currentY += 40;
     }
     
-    // Projects Section with card-like layout
-    if (userData.projects && userData.projects.length > 0) {
+    // ===== CERTIFICATIONS SECTION =====
+    // Check if we need a new page
+    if (currentY > pageHeight - 60) {
+        doc.addPage();
+        currentY = margin + 20;
+    }
+    
+    // Certifications header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...headerColor);
+    doc.text("CERTIFICATIONS & PROFESSIONAL DEVELOPMENT", margin, currentY);
+    
+    // Accent line under header
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.5);
+    doc.line(margin, currentY + 5, margin + 60, currentY + 5);
+    
+    currentY += 15;
+    
+    // Certifications in horizontal layout
+    const certifications = userData.certifications || [
+        "Certified Public Accountant (CPA) - 20XX",
+        "Certified Management Accountant (CMA) - 20XX",
+        "QuickBooks ProAdvisor - 20XX"
+    ];
+    
+    // Create boxes for certifications
+    const certBoxWidth = contentWidth;
+    const certBoxHeight = 10;
+    
+    certifications.forEach((cert, i) => {
+        // Alternate background colors for easier reading
+        if (i % 2 === 0) {
+            doc.setFillColor(...highlightColor);
+            doc.rect(margin, currentY, certBoxWidth, certBoxHeight, 'F');
+        }
+        
+        // Certification text with bullet point
+        doc.setFillColor(...accentColor);
+        doc.circle(margin + 3, currentY + 5, 1.5, 'F');
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text(cert, margin + 8, currentY + 7);
+        
+        currentY += certBoxHeight;
+    });
+    
+    currentY += 15;
+    
+    // ===== REFERENCES SECTION (OPTIONAL) =====
+    // Add this section if you want to include it
+    if (userData.include_references) {
         // Check if we need a new page
         if (currentY > pageHeight - 60) {
             doc.addPage();
-            currentY = margin + 10;
+            currentY = margin + 20;
         }
         
-        // Section heading with burgundy underline
+        // References header
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(...primaryColor);
-        doc.text("KEY PROJECTS", margin, currentY);
+        doc.setFontSize(12);
+        doc.setTextColor(...headerColor);
+        doc.text("REFERENCES", margin, currentY);
         
-        doc.setDrawColor(...primaryColor);
-        doc.setLineWidth(1);
-        doc.line(margin, currentY + 4, margin + 50, currentY + 4);
+        // Accent line under header
+        doc.setDrawColor(...accentColor);
+        doc.setLineWidth(1.5);
+        doc.line(margin, currentY + 5, margin + 60, currentY + 5);
         
         currentY += 15;
         
-        userData.projects.forEach((project, i) => {
-            // Check for page overflow
-            if (currentY > pageHeight - 50) {
-                doc.addPage();
-                currentY = margin + 10;
-                
-                if (i > 0) {
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(16);
-                    doc.setTextColor(...primaryColor);
-                    doc.text("KEY PROJECTS (cont.)", margin, currentY);
-                    
-                    doc.setDrawColor(...primaryColor);
-                    doc.setLineWidth(1);
-                    doc.line(margin, currentY + 4, margin + 80, currentY + 4);
-                    
-                    currentY += 15;
-                }
-            }
-            
-            // Card-like border for each project
-            doc.setDrawColor(...accentColor);
-            doc.roundedRect(margin, currentY, contentWidth, 5, 0, 0, 'F'); // Top bar
-            
-            currentY += 8;
-            
-            // Project title with elegant typography
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(12);
-            doc.setTextColor(...primaryColor);
-            doc.text(project.title, margin + 5, currentY);
-            
-            // Project duration with elegant formatting
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            doc.setTextColor(...secondaryColor);
-            const projDateText = `${formatDate(project.start_date)} - ${project.currently_ongoing ? 'Present' : formatDate(project.end_date)}`;
-            doc.text(projDateText, pageWidth - margin, currentY, { align: 'right' });
-            
-            currentY += 8;
-            
-            // Project description with refined styling
-            if (project.description) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                
-                // Convert description to bullet points
-                const projectPoints = project.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                const formattedProjectPoints = projectPoints.length > 1 ? 
-                    projectPoints : 
-                    project.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedProjectPoints.forEach(point => {
-                    // Check for page overflow
-                    if (currentY > pageHeight - 30) {
-                        doc.addPage();
-                        currentY = margin + 10;
-                    }
-                    
-                    // Add elegant diamond bullet
-                    doc.setFillColor(...highlightColor);
-                    doc.rect(margin + 5, currentY - 3, 3, 3, 'F');
-                    
-                    const bulletWidth = contentWidth - 15;
-                    const bulletText = doc.splitTextToSize(point.trim(), bulletWidth);
-                    doc.text(bulletText, margin + 12, currentY);
-                    currentY += bulletText.length * 5;
-                });
-            }
-
-            // Project link if available
-            if (project.link) {
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(...primaryColor);
-                doc.text(`Visit: ${project.link}`, margin + 5, currentY);
-                currentY += 8;
-            }
-            
-            // Add technologies with elegant tag-like appearance
-            if (project.technologies) {
-                // Check for page overflow
-                if (currentY > pageHeight - 20) {
-                    doc.addPage();
-                    currentY = margin + 10;
-                }
-                
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.setTextColor(...secondaryColor);
-                doc.text("Technologies:", margin + 5, currentY);
-                
-                doc.setFont("helvetica", "normal");
-                currentY += 5;
-                
-                // Create visual tag-like elements for technologies
-                let techList = Array.isArray(project.technologies) ? 
-                    project.technologies : project.technologies.split(',').map(t => t.trim());
-                
-                const tagWidth = (contentWidth - 10) / 3;
-                let tagX = margin + 5;
-                let tagY = currentY;
-                
-                techList.forEach((tech, idx) => {
-                    // Check if we need to start a new row
-                    if (idx > 0 && idx % 3 === 0) {
-                        tagX = margin + 5;
-                        tagY += 8;
-                    }
-                    
-                    // Check for page overflow
-                    if (tagY > pageHeight - 20) {
-                        doc.addPage();
-                        tagY = margin + 10;
-                        tagX = margin + 5;
-                    }
-                    
-                    // Draw tag background
-                    doc.setFillColor(...highlightColor);
-                    doc.roundedRect(tagX, tagY - 4, Math.min(tech.length * 4 + 6, tagWidth - 5), 6, 2, 2, 'F');
-                    
-                    // Add tech name
-                    doc.setTextColor(...secondaryColor);
-                    doc.text(tech, tagX + 3, tagY);
-                    
-                    // Move to next tag position
-                    tagX += Math.min(tech.length * 4 + 10, tagWidth);
-                });
-                
-                currentY = tagY + 12;
-            } else {
-                currentY += 5;
-            }
-            
-            // Bottom border
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.5);
-            doc.line(margin, currentY, margin + contentWidth, currentY);
-            
-            currentY += 10;
-        });
+        // References statement
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text("Professional references available upon request.", margin, currentY);
+        
+        currentY += 15;
     }
     
-    // Footer with elegant page numbers and subtle branding
+    // Footer with subtle page numbering
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
         
-        // Bottom page border
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+        // Footer with full-width accent color bar
+        doc.setFillColor(...headerColor);
+        doc.rect(margin, pageHeight - 15, contentWidth, 8, 'F');
         
-        // Page numbers
+        // Page number
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(255, 255, 255);
-        doc.text(`${userData.user_name} • Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth/2, pageHeight - 10, {align: 'center'});
     }
     
     // Helper function for date formatting
     function formatDate(dateString) {
-        if (!dateString) return 'N/A';
+        if (!dateString) return 'MM/YYYY';
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString; // Return original if invalid
+            if (isNaN(date.getTime())) return dateString;
             
-            const month = date.toLocaleString('default', { month: 'short' });
-            const year = date.getFullYear();
-            return `${month} ${year}`;
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[date.getMonth()]} ${date.getFullYear()}`;
         } catch (e) {
-            return dateString; // Fallback to original string
+            return dateString || 'MM/YYYY';
         }
     }
+    
+    // Helper function to add sample experiences
+    function addSampleExperiences(doc) {
+        // Sample experience 1
+        // Job title with accent color
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...accentColor);
+        doc.text("Senior Accountant", margin, currentY);
+        
+        // Company name
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...headerColor);
+        doc.text("PQR Financial Group", margin + 75, currentY, {align: 'left'});
+        
+        // Location and date
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text("San Francisco, CA | Jan 20XX - Present", pageWidth - margin, currentY, {align: 'right'});
+        
+        currentY += 8;
+        
+        // Bullet points
+        const bullets1 = [
+            "Led year-end close process for 12 clients, reducing timeline by 30% through process improvements and automation",
+            "Generated comprehensive financial reports, identifying $350K in potential tax savings",
+            "Implemented new accounting software, increasing team productivity by 25% and reducing errors by 40%",
+            "Mentored 3 junior accountants, developing technical skills and best practices"
+        ];
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        
+        bullets1.forEach(bullet => {
+            doc.setFillColor(...accentColor);
+            doc.circle(margin + 3, currentY - 3, 1.5, 'F');
+            
+            const bulletText = doc.splitTextToSize(bullet, contentWidth - 15);
+            doc.text(bulletText, margin + 8, currentY);
+            currentY += bulletText.length * 5 + 2;
+        });
+        
+        currentY += 10;
+        
+        // Sample experience 2
+        // Job title with accent color
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...accentColor);
+        doc.text("Staff Accountant", margin, currentY);
+        
+        // Company name
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...headerColor);
+        doc.text("XYZ Corporation", margin + 75, currentY, {align: 'left'});
+        
+        // Location and date
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text("Oakland, CA | Mar 20XX - Dec 20XX", pageWidth - margin, currentY, {align: 'right'});
+        
+        currentY += 8;
+        
+        // Bullet points
+        const bullets2 = [
+            "Conducted monthly account reconciliations with 99.8% accuracy, identifying and resolving discrepancies",
+            "Prepared quarterly and annual tax filings for businesses with revenues from $2M to $15M",
+            "Assisted with audit preparation, reducing outside accounting services costs by 20%",
+            "Developed Excel macros and templates that streamlined reporting processes by 35%"
+        ];
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        
+        bullets2.forEach(bullet => {
+            doc.setFillColor(...accentColor);
+            doc.circle(margin + 3, currentY - 3, 1.5, 'F');
+            
+            const bulletText = doc.splitTextToSize(bullet, contentWidth - 15);
+            doc.text(bulletText, margin + 8, currentY);
+            currentY += bulletText.length * 5 + 2;
+        });
+        
+        currentY += 10;
+    }
 }
-
 // Template 4 - Modern Two-Column ATS-Friendly Resume
 function generateTemplate4(doc, userData) {
     // Document setup - A4 size
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
+    const margin = 20; // Balanced margins
+    const contentWidth = pageWidth - (margin * 2);
     
-    // Define column widths
-    const leftColWidth = 55; // Sidebar width
-    const rightColWidth = pageWidth - leftColWidth - (margin * 2);
-    const rightColStart = leftColWidth + margin;
+    // Modern color scheme
+    const primaryColor = [40, 50, 78]; // Deep navy blue
+    const accentColor = [82, 171, 152]; // Teal green
+    const lightAccent = [232, 245, 243]; // Very light teal
+    const bodyTextColor = [60, 60, 60]; // Dark gray
+    const secondaryTextColor = [100, 100, 100]; // Medium gray
     
-    // Set document properties with keywords for ATS
+    // Enhanced document properties for ATS optimization
     doc.setProperties({
-        title: `${userData.user_name} - ${userData.experiences?.[0]?.job_title || 'Professional'} Resume`,
-        subject: `Resume - ${userData.skills.slice(0, 5).join(', ')}`,
-        author: userData.user_name,
-        keywords: userData.skills.join(', ') // Keywords help with ATS scanning
+        title: `${userData.user_name || 'Professional'} Resume - ${userData.job_title || 'Specialist'}`,
+        subject: `${userData.job_title || 'Professional'} with expertise in ${userData.skills?.slice(0, 3).join(', ') || 'specialized areas'}`,
+        author: userData.user_name || 'Professional',
+        keywords: `${userData.job_title || 'Professional'}, ${userData.skills?.join(', ') || 'key skills'}, ${userData.certifications?.join(', ') || 'certifications'}, professional resume`
     });
 
-    // Helper function for page overflow checking
-    function checkPageOverflow(currentY, requiredSpace = 20) {
-        if (currentY > pageHeight - requiredSpace) {
-            doc.addPage();
+    // ===== MODERN HEADER WITH VISUAL IMPACT =====
+    // Header background
+    doc.setFillColor(...lightAccent);
+    doc.rect(0, 0, pageWidth, margin + 60, 'F');
+    
+    // Name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(26);
+    doc.setTextColor(...primaryColor);
+    doc.text(userData.user_name || "JANE DOE", margin, margin + 20);
+    
+    // Job title with accent color
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(...accentColor);
+    doc.text(userData.job_title || "SENIOR PROFESSIONAL", margin, margin + 35);
+    
+    // Contact info with modern icons
+    const contactX1 = margin;
+    const contactX2 = margin + contentWidth/2;
+    const contactY = margin + 50;
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...bodyTextColor);
+    
+    // Left column contact info
+    doc.text(`✉ ${userData.email || "jane.doe@example.com"}`, contactX1, contactY);
+    doc.text(`☏ ${userData.mobile || "(555) 123-4567"}`, contactX1, contactY + 12);
+    
+    // Right column contact info
+    doc.text(`⌖ ${userData.location || "San Francisco, CA"}`, contactX2, contactY);
+    doc.text(`in ${userData.linkedin || "linkedin.com/in/janedoe"}`, contactX2, contactY + 12);
+    
+    // Professional profile photo area
+    doc.setFillColor(255, 255, 255, 0.8); // White with transparency
+    doc.roundedRect(pageWidth - margin - 50, margin, 40, 40, 3, 3, 'F');
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(18);
+    doc.setTextColor(...accentColor);
+    doc.text("✓", pageWidth - margin - 30, margin + 25);
+    
+    let currentY = margin + 75;
+    
+    // ===== PROFILE SECTION WITH VISUAL SEPARATION =====
+    // Section header
+    drawSectionHeader(doc, "PROFESSIONAL PROFILE", margin, currentY, accentColor, primaryColor);
+    
+    currentY += 15;
+    
+    // Profile text with improved readability
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...bodyTextColor);
+    
+    const summary = userData.summary || 
+        "Results-driven professional with a proven track record of delivering exceptional outcomes through strategic thinking and creative problem-solving. Adept at synthesizing complex information into clear, actionable insights while maintaining the highest standards of quality. Recognized for strong leadership abilities and collaborative approach that drives team success and organizational growth.";
+    
+    const summaryLines = doc.splitTextToSize(summary, contentWidth);
+    doc.text(summaryLines, margin, currentY);
+    
+    currentY += summaryLines.length * 6 + 20;
+    
+    // ===== SKILLS SECTION WITH VISUAL INDICATORS =====
+    drawSectionHeader(doc, "CORE COMPETENCIES", margin, currentY, accentColor, primaryColor);
+    
+    currentY += 15;
+    
+    // Create skills display with visual indicators
+    const skillsList = userData.skills && userData.skills.length > 0 ? 
+        userData.skills.slice(0, 10) : 
+        ["Critical Thinking", "Strategic Planning", "Team Leadership", "Project Management", 
+         "Communication", "Process Improvement", "Problem Solving", "Data Analysis", 
+         "Research & Analysis", "Technical Writing"];
+    
+    // Calculate columns and distribution
+    const skillColumns = 2;
+    const skillsPerColumn = Math.ceil(skillsList.length / skillColumns);
+    const columnWidth = contentWidth / skillColumns;
+    
+    // Draw skills with style
+    for (let i = 0; i < skillsList.length; i++) {
+        const columnIndex = Math.floor(i / skillsPerColumn);
+        const rowIndex = i % skillsPerColumn;
+        
+        const xPos = margin + (columnIndex * columnWidth);
+        const yPos = currentY + (rowIndex * 16);
+        
+        // Skill bubble background
+        doc.setFillColor(...lightAccent);
+        doc.roundedRect(xPos, yPos - 8, 8, 8, 2, 2, 'F');
+        
+        // Checkmark in bubble
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(...accentColor);
+        doc.text("✓", xPos + 2.5, yPos - 2.5);
+        
+        // Skill text
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...bodyTextColor);
+        doc.text(skillsList[i], xPos + 12, yPos);
+    }
+    
+    // Update Y position based on skills
+    currentY += (Math.ceil(skillsList.length / skillColumns) * 16) + 20;
+    
+    // ===== EXPERIENCE SECTION WITH ENHANCED TIMELINE =====
+    drawSectionHeader(doc, "PROFESSIONAL EXPERIENCE", margin, currentY, accentColor, primaryColor);
+    
+    currentY += 15;
+    
+    // Timeline style variables
+    const timelineX = margin + 10;
+    const contentX = margin + 25;
+    const contentIndent = 10;
+    const entrySpacing = 25;
+    
+    // Create experiences with modern timeline
+    if (userData.experiences && userData.experiences.length > 0) {
+        userData.experiences.forEach((exp, index) => {
+            // Check if we need a new page
+            if (currentY > pageHeight - 70) {
+                doc.addPage();
+                currentY = margin + 20;
+                // Header for new page
+                doc.setFillColor(...lightAccent);
+                doc.rect(0, 0, pageWidth, margin + 10, 'F');
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.setTextColor(...primaryColor);
+                doc.text(userData.user_name || "Professional Resume", margin, margin + 5);
+            }
             
-            // Draw sidebar background on new page
-            doc.setFillColor(240, 240, 245);
-            doc.rect(margin, margin, leftColWidth, pageHeight - (margin * 2), 'F');
+            // Timeline dot
+            doc.setFillColor(...accentColor);
+            doc.circle(timelineX, currentY, 4, 'F');
             
-            return margin + 15;
-        }
-        return currentY;
+            // Timeline line connecting dots
+            if (index < (userData.experiences.length - 1)) {
+                doc.setDrawColor(...accentColor);
+                doc.setLineWidth(1);
+                doc.line(timelineX, currentY + 4, timelineX, currentY + 65);
+            }
+            
+            // Job title with company
+            const jobTitle = exp.job_title || 'Senior Position';
+            const companyName = exp.company_name || 'Innovative Company';
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(...primaryColor);
+            doc.text(jobTitle, contentX, currentY);
+            
+            currentY += 8;
+            
+            // Company name with location
+            doc.setFont("helvetica", "semibold");
+            doc.setFontSize(10);
+            doc.setTextColor(...accentColor);
+            
+            const location = exp.location || 'Location';
+            doc.text(`${companyName} | ${location}`, contentX, currentY);
+            
+            // Date range with clean styling
+            const dateText = exp.currently_working ? 
+                `${formatDate(exp.start_date)} - Present` : 
+                `${formatDate(exp.start_date)} - ${formatDate(exp.end_date)}`;
+            
+            const dateWidth = doc.getStringUnitWidth(dateText) * 8 * 0.352778;
+            
+            doc.setFillColor(...lightAccent);
+            doc.roundedRect(pageWidth - margin - dateWidth - 6, currentY - 7, dateWidth + 6, 12, 2, 2, 'F');
+            
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(...accentColor);
+            doc.text(dateText, pageWidth - margin - 3, currentY, {align: 'right'});
+            
+            currentY += 12;
+            
+            // Experience description with modern bullet points
+            let description = exp.description || 
+                "• Led strategic initiatives resulting in significant operational improvements\n" +
+                "• Developed innovative solutions to complex challenges in the field\n" +
+                "• Collaborated with cross-functional teams to achieve organizational goals";
+            
+            // Format bullet points
+            let bullets;
+            if (description.includes('•') || description.includes('-')) {
+                bullets = description.split(/•|-/).filter(item => item.trim().length > 0);
+            } else {
+                bullets = description.split('.').filter(item => item.trim().length > 0);
+            }
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(...bodyTextColor);
+            
+            bullets.forEach(bullet => {
+                if (bullet.trim()) {
+                    // Modern bullet point
+                    doc.setFillColor(...accentColor);
+                    doc.circle(contentX + 3, currentY - 3, 1.5, 'F');
+                    
+                    // Bullet text with indent
+                    const bulletText = doc.splitTextToSize(bullet.trim(), contentWidth - contentX - contentIndent);
+                    doc.text(bulletText, contentX + contentIndent, currentY);
+                    currentY += bulletText.length * 5 + 4;
+                }
+            });
+            
+            currentY += entrySpacing; // Space between experiences
+        });
+    } else {
+        // Add sample experience if none provided
+        addSampleExperience(doc);
+    }
+    
+    // ===== EDUCATION SECTION WITH VISUAL ELEMENTS =====
+    // Check if we need a new page
+    if (currentY > pageHeight - 100) {
+        doc.addPage();
+        currentY = margin + 20;
+        // Header for new page
+        doc.setFillColor(...lightAccent);
+        doc.rect(0, 0, pageWidth, margin + 10, 'F');
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(...primaryColor);
+        doc.text(userData.user_name || "Professional Resume", margin, margin + 5);
+    }
+    
+    // Draw education section header
+    drawSectionHeader(doc, "EDUCATION", margin, currentY, accentColor, primaryColor);
+    
+    currentY += 15;
+    
+    // Education entries with enhanced styling
+    if (userData.education && userData.education.length > 0) {
+        userData.education.forEach((edu, index) => {
+            // Check if we need a new page
+            if (currentY > pageHeight - 50) {
+                doc.addPage();
+                currentY = margin + 20;
+                // Header for new page
+                doc.setFillColor(...lightAccent);
+                doc.rect(0, 0, pageWidth, margin + 10, 'F');
+                doc.setFont("helvetica", "italic");
+                doc.setFontSize(8);
+                doc.setTextColor(...primaryColor);
+                doc.text(userData.user_name || "Professional Resume", margin, margin + 5);
+            }
+            
+            // Timeline dot
+            doc.setFillColor(...accentColor);
+            doc.circle(timelineX, currentY, 4, 'F');
+            
+            // Timeline line connecting dots
+            if (index < (userData.education.length - 1)) {
+                doc.setDrawColor(...accentColor);
+                doc.setLineWidth(1);
+                doc.line(timelineX, currentY + 4, timelineX, currentY + 25);
+            }
+            
+            // Degree with visual styling
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.setTextColor(...primaryColor);
+            doc.text(edu.degree || "Bachelor of Science", contentX, currentY);
+            
+            currentY += 8;
+            
+            // University name
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(...accentColor);
+            doc.text(edu.university || "University of Excellence", contentX, currentY);
+            
+            // Graduation date
+            const gradDate = formatDate(edu.graduation_date) || "20XX";
+            const dateWidth = doc.getStringUnitWidth(gradDate) * 8 * 0.352778;
+            
+            doc.setFillColor(...lightAccent);
+            doc.roundedRect(pageWidth - margin - dateWidth - 6, currentY - 7, dateWidth + 6, 12, 2, 2, 'F');
+            
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(...accentColor);
+            doc.text(gradDate, pageWidth - margin - 3, currentY, {align: 'right'});
+            
+            currentY += 20;
+        });
+    } else {
+        // Default education entry
+        doc.setFillColor(...accentColor);
+        doc.circle(timelineX, currentY, 4, 'F');
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...primaryColor);
+        doc.text("Bachelor of Science", contentX, currentY);
+        
+        currentY += 8;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(...accentColor);
+        doc.text("University of Excellence", contentX, currentY);
+        
+        const gradDate = "20XX";
+        const dateWidth = doc.getStringUnitWidth(gradDate) * 8 * 0.352778;
+        
+        doc.setFillColor(...lightAccent);
+        doc.roundedRect(pageWidth - margin - dateWidth - 6, currentY - 7, dateWidth + 6, 12, 2, 2, 'F');
+        
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(...accentColor);
+        doc.text(gradDate, pageWidth - margin - 3, currentY, {align: 'right'});
+        
+        currentY += 20;
+    }
+    
+    currentY += 5;
+    
+    // ===== CERTIFICATIONS WITH VISUAL ELEMENTS =====
+    // Check if we need a new page
+    if (currentY > pageHeight - 80) {
+        doc.addPage();
+        currentY = margin + 20;
+        // Header for new page
+        doc.setFillColor(...lightAccent);
+        doc.rect(0, 0, pageWidth, margin + 10, 'F');
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(...primaryColor);
+        doc.text(userData.user_name || "Professional Resume", margin, margin + 5);
+    }
+    
+    // Draw certifications section header
+    drawSectionHeader(doc, "CERTIFICATIONS & LICENSES", margin, currentY, accentColor, primaryColor);
+    
+    currentY += 15;
+    
+    // Certifications in styled list
+    const certifications = userData.certifications || [
+        "Professional Certification in Field of Expertise (20XX)",
+        "Advanced Practitioner Certificate (20XX)",
+        "Specialized Knowledge Credential (20XX)"
+    ];
+    
+    // Create modern badge-style certifications
+    const certColumns = certifications.length > 3 ? 2 : 1;
+    const certsPerColumn = Math.ceil(certifications.length / certColumns);
+    const certColumnWidth = contentWidth / certColumns;
+    
+    for (let i = 0; i < certifications.length; i++) {
+        const columnIndex = Math.floor(i / certsPerColumn);
+        const rowIndex = i % certsPerColumn;
+        
+        const xPos = margin + (columnIndex * certColumnWidth);
+        const yPos = currentY + (rowIndex * 14);
+        
+        // Certificate badge
+        doc.setFillColor(...lightAccent);
+        doc.roundedRect(xPos, yPos - 9, 8, 8, 2, 2, 'F');
+        
+        // Certificate icon
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(...accentColor);
+        doc.text("✓", xPos + 2.5, yPos - 3.5);
+        
+        // Certificate text
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        doc.text(certifications[i], xPos + 12, yPos);
+    }
+    
+    // Update Y position based on certifications
+    currentY += (Math.ceil(certifications.length / certColumns) * 14) + 5;
+    
+    // ===== MODERN FOOTER WITH BRANDING =====
+    // Add footer to all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        
+        // Footer background
+        doc.setFillColor(...lightAccent);
+        doc.rect(0, pageHeight - margin - 15, pageWidth, margin + 15, 'F');
+        
+        // Page number
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...primaryColor);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - margin - 5, {align: 'right'});
+        
+        // Personal tagline
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(...accentColor);
+        doc.text("Excellence in Every Endeavor", margin, pageHeight - margin - 5);
+    }
+    
+    // ===== HELPER FUNCTIONS =====
+    // Draw section header with consistent styling
+    function drawSectionHeader(doc, title, x, y, accentColor, textColor) {
+        // Section title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...textColor);
+        doc.text(title, x, y);
+        
+        // Section underline with accent color
+        doc.setDrawColor(...accentColor);
+        doc.setLineWidth(1.5);
+        doc.line(x, y + 5, x + doc.getStringUnitWidth(title) * 12 * 0.352778, y + 5);
     }
     
     // Helper function for date formatting
     function formatDate(dateString) {
-        if (!dateString) return 'N/A';
+        if (!dateString) return 'YYYY';
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString; // Return original if invalid
+            if (isNaN(date.getTime())) return dateString;
             
-            const month = date.toLocaleString('default', { month: 'short' });
-            const year = date.getFullYear();
-            return `${month} ${year}`;
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[date.getMonth()]} ${date.getFullYear()}`;
         } catch (e) {
-            return dateString; // Fallback to original string
+            return dateString || 'YYYY';
         }
     }
-
-    // Draw sidebar background
-    doc.setFillColor(240, 240, 245); // Light blue-grey
-    doc.rect(margin, margin, leftColWidth, pageHeight - (margin * 2), 'F');
     
-    // ===== LEFT COLUMN (SIDEBAR) =====
-    let leftY = margin + 15;
-    
-    // Name header in sidebar
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(50, 50, 80); // Dark blue-grey
-    
-    // Split name into first and last for visual interest
-    const nameParts = userData.user_name.split(' ');
-    if (nameParts.length > 1) {
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
+    // Helper function for sample experience
+    function addSampleExperience(doc) {
+        // Sample Experience 1
+        // Timeline dot
+        doc.setFillColor(...accentColor);
+        doc.circle(timelineX, currentY, 4, 'F');
         
-        doc.text(firstName, margin + 5, leftY);
-        leftY += 8;
-        doc.setFontSize(18);
-        doc.setTextColor(30, 30, 70); // Slightly darker
-        doc.text(lastName.toUpperCase(), margin + 5, leftY);
-    } else {
-        // If can't split name, just show full name
-        doc.setFontSize(18);
-        doc.text(userData.user_name.toUpperCase(), margin + 5, leftY);
-    }
-    leftY += 12;
-    
-    // Profile photo placeholder with circular mask (optional)
-    /*
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(1);
-    doc.circle(margin + leftColWidth/2, leftY + 20, 20, 'S');
-    leftY += 50;
-    */
-    
-    // Contact section
-    doc.setFillColor(60, 60, 100);
-    doc.rect(margin + 5, leftY, leftColWidth - 10, 1, 'F');
-    leftY += 6;
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 100);
-    doc.text("CONTACT", margin + 5, leftY);
-    leftY += 7;
-    
-    // Contact details
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(40, 40, 40);
-    
-    if (userData.email) {
-        doc.text("Email:", margin + 5, leftY);
-        leftY += 4;
-        doc.setFont("helvetica", "normal");
-        const emailLines = doc.splitTextToSize(userData.email, leftColWidth - 10);
-        doc.text(emailLines, margin + 5, leftY);
-        leftY += emailLines.length * 4 + 2;
-    }
-    
-    if (userData.mobile) {
+        // Timeline line connecting dots
+        doc.setDrawColor(...accentColor);
+        doc.setLineWidth(1);
+        doc.line(timelineX, currentY + 4, timelineX, currentY + 65);
+        
+        // Job title
         doc.setFont("helvetica", "bold");
-        doc.text("Phone:", margin + 5, leftY);
-        leftY += 4;
-        doc.setFont("helvetica", "normal");
-        doc.text(userData.mobile, margin + 5, leftY);
-        leftY += 6;
-    }
-    
-    if (userData.location) {
-        doc.setFont("helvetica", "bold");
-        doc.text("Location:", margin + 5, leftY);
-        leftY += 4;
-        doc.setFont("helvetica", "normal");
-        const locationLines = doc.splitTextToSize(userData.location, leftColWidth - 10);
-        doc.text(locationLines, margin + 5, leftY);
-        leftY += locationLines.length * 4 + 2;
-    }
-    
-    // LinkedIn
-    if (userData.linkedin) {
-        doc.setFont("helvetica", "bold");
-        doc.text("LinkedIn:", margin + 5, leftY);
-        leftY += 4;
-        doc.setFont("helvetica", "normal");
-        const linkedinLines = doc.splitTextToSize(userData.linkedin, leftColWidth - 10);
-        doc.text(linkedinLines, margin + 5, leftY);
-        leftY += linkedinLines.length * 4 + 2;
-    }
-    
-    // GitHub
-    if (userData.github) {
-        doc.setFont("helvetica", "bold");
-        doc.text("GitHub:", margin + 5, leftY);
-        leftY += 4;
-        doc.setFont("helvetica", "normal");
-        const githubLines = doc.splitTextToSize(userData.github, leftColWidth - 10);
-        doc.text(githubLines, margin + 5, leftY);
-        leftY += githubLines.length * 4 + 2;
-    }
-    
-    leftY += 8;
-    
-    // Skills Section in sidebar
-    leftY = checkPageOverflow(leftY, 30);
-    doc.setFillColor(60, 60, 100);
-    doc.rect(margin + 5, leftY, leftColWidth - 10, 1, 'F');
-    leftY += 6;
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 100);
-    doc.text("SKILLS", margin + 5, leftY);
-    leftY += 7;
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(40, 40, 40);
-    
-    if (userData.skills && userData.skills.length > 0) {
-        userData.skills.forEach((skill) => {
-            leftY = checkPageOverflow(leftY);
-            
-            // Small decorative bullet
-            doc.setDrawColor(80, 80, 120); 
-            doc.circle(margin + 7, leftY - 1.5, 1, 'FD');
-            
-            // Skill text
-            const skillText = doc.splitTextToSize(skill, leftColWidth - 15);
-            doc.text(skillText, margin + 10, leftY);
-            leftY += skillText.length * 4 + 3;
-        });
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.text("No skills listed", margin + 5, leftY);
-        leftY += 5;
-    }
-    
-    leftY += 8;
-    
-    // Education section in sidebar
-    leftY = checkPageOverflow(leftY, 40);
-    doc.setFillColor(60, 60, 100);
-    doc.rect(margin + 5, leftY, leftColWidth - 10, 1, 'F');
-    leftY += 6;
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 100);
-    doc.text("EDUCATION", margin + 5, leftY);
-    leftY += 10;
-    
-    // Filter out education entries with empty institution names
-    const validEducationEntries = [
-        { type: "Graduation", school: userData.ug_college, year: userData.Passout_Year, score: userData.Graduation_Percentage },
-        { type: "12th", school: userData.twelfth_school, year: userData.twelfth_year, score: userData.twelfth_percentage },
-        { type: "10th", school: userData.tenth_school, year: userData.tenth_year, score: userData.Percentage_10 }
-    ].filter(edu => edu.school && edu.school.trim() !== "");
-    
-    if (validEducationEntries.length > 0) {
-        validEducationEntries.forEach((edu) => {
-            leftY = checkPageOverflow(leftY, 25);
-            
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-            doc.setTextColor(40, 40, 70);
-            doc.text(edu.type, margin + 5, leftY);
-            leftY += 4;
-            
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.setTextColor(40, 40, 40);
-            
-            // Institution name
-            const schoolLines = doc.splitTextToSize(edu.school, leftColWidth - 10);
-            doc.text(schoolLines, margin + 5, leftY);
-            leftY += schoolLines.length * 4;
-            
-            // Year and score
-            doc.setFont("helvetica", "italic");
-            if (edu.year) {
-                doc.text(`Year: ${edu.year}`, margin + 5, leftY);
-                leftY += 4;
-            }
-            
-            if (edu.score) {
-                doc.text(`Score: ${edu.score}`, margin + 5, leftY);
-                leftY += 4;
-            }
-            
-            leftY += 6;
-        });
-    } else {
+        doc.setFontSize(12);
+        doc.setTextColor(...primaryColor);
+        doc.text("Senior Project Manager", contentX, currentY);
+        
+        currentY += 8;
+        
+        // Company and location
+        doc.setFont("helvetica", "semibold");
+        doc.setFontSize(10);
+        doc.setTextColor(...accentColor);
+        doc.text("Innovative Solutions Group | San Francisco, CA", contentX, currentY);
+        
+        // Date range
+        const dateText = "Jan 2020 - Present";
+        const dateWidth = doc.getStringUnitWidth(dateText) * 8 * 0.352778;
+        
+        doc.setFillColor(...lightAccent);
+        doc.roundedRect(pageWidth - margin - dateWidth - 6, currentY - 7, dateWidth + 6, 12, 2, 2, 'F');
+        
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
-        doc.text("No education details provided", margin + 5, leftY);
-        leftY += 6;
-    }
-    
-    // ===== RIGHT COLUMN (MAIN CONTENT) =====
-    let rightY = margin + 15;
-    
-    // Professional headline/title
-    if (userData.experiences && userData.experiences.length > 0) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(60, 60, 100);
-        doc.text(userData.experiences[0].job_title.toUpperCase(), rightColStart, rightY);
-        rightY += 8;
-    }
-    
-    // Professional Summary
-    if (userData.summary) {
-        doc.setFillColor(60, 60, 100);
-        doc.rect(rightColStart, rightY, rightColWidth, 1, 'F');
-        rightY += 6;
+        doc.setTextColor(...accentColor);
+        doc.text(dateText, pageWidth - margin - 3, currentY, {align: 'right'});
         
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.setTextColor(60, 60, 100);
-        doc.text("PROFESSIONAL SUMMARY", rightColStart, rightY);
-        rightY += 6;
+        currentY += 12;
+        
+        // Bullet points
+        const bullets = [
+            "Led cross-functional teams in the successful delivery of 15+ projects, consistently meeting deadlines and exceeding quality standards",
+            "Developed and implemented streamlined processes that improved operational efficiency by 35%",
+            "Managed client relationships and expectations through clear communication and strategic problem-solving"
+        ];
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        doc.setTextColor(40, 40, 40);
-        const summaryLines = doc.splitTextToSize(userData.summary, rightColWidth);
-        doc.text(summaryLines, rightColStart, rightY);
-        rightY += summaryLines.length * 4 + 10;
-    }
-    
-    // Experience Section
-    rightY = checkPageOverflow(rightY, 40);
-    doc.setFillColor(60, 60, 100);
-    doc.rect(rightColStart, rightY, rightColWidth, 1, 'F');
-    rightY += 6;
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(60, 60, 100);
-    doc.text("PROFESSIONAL EXPERIENCE", rightColStart, rightY);
-    rightY += 10;
-    
-    if (userData.experiences && userData.experiences.length > 0) {
-        userData.experiences.forEach((exp, index) => {
-            rightY = checkPageOverflow(rightY, 30);
-            
-            // Stylized timeline dot and line
-            if (index > 0) {
-                doc.setDrawColor(200, 200, 210);
-                doc.setLineWidth(0.5);
-                doc.line(rightColStart + 3, rightY - 6, rightColStart + 3, rightY - 3);
-            }
-            
-            doc.setFillColor(60, 60, 100);
-            doc.circle(rightColStart + 3, rightY, 2, 'F');
-            
-            if (index < userData.experiences.length - 1) {
-                doc.setDrawColor(200, 200, 210);
-                doc.setLineWidth(0.5);
-                // Calculate approximate height of this experience entry to position line
-                const estimatedHeight = exp.description ? 
-                    (exp.description.split('\n').length * 4) + 20 : 20;
-                doc.line(rightColStart + 3, rightY + 3, rightColStart + 3, rightY + estimatedHeight);
-            }
-            
-            // Job Title
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(40, 40, 70);
-            doc.text(exp.job_title, rightColStart + 8, rightY);
-            
-            // Date range aligned right
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            const dateText = `${formatDate(exp.start_date)} - ${exp.currently_working ? 'Present' : formatDate(exp.end_date)}`;
-            doc.text(dateText, rightColStart + rightColWidth, rightY, { align: 'right' });
-            rightY += 5;
-            
-            // Company and location
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(40, 40, 40);
-            
-            let companyLocationText = exp.company_name;
-            if (exp.location) {
-                companyLocationText += ` | ${exp.location}`;
-            }
-            
-            doc.text(companyLocationText, rightColStart + 8, rightY);
-            rightY += 6;
-            
-            // Description with bullet points
-            if (exp.description) {
-                doc.setFontSize(9);
-                
-                // Convert description to bullet points
-                const bulletPoints = exp.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                const formattedPoints = bulletPoints.length > 1 ? 
-                    bulletPoints : 
-                    exp.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedPoints.forEach(point => {
-                    rightY = checkPageOverflow(rightY);
-                    
-                    // Small decorative bullet
-                    doc.setFillColor(180, 180, 200);
-                    doc.circle(rightColStart + 10, rightY - 1.5, 1, 'F');
-                    
-                    // Bullet text
-                    const bulletText = doc.splitTextToSize(point.trim(), rightColWidth - 15);
-                    doc.text(bulletText, rightColStart + 14, rightY);
-                    rightY += bulletText.length * 4 + 2;
-                });
-            }
-            
-            rightY += 10; // Space between experiences
-        });
-    } else {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(9);
-        doc.text("No work experience provided", rightColStart, rightY);
-        rightY += 10;
-    }
-    
-    // Projects Section
-    if (userData.projects && userData.projects.length > 0) {
-        rightY = checkPageOverflow(rightY, 40);
-        doc.setFillColor(60, 60, 100);
-        doc.rect(rightColStart, rightY, rightColWidth, 1, 'F');
-        rightY += 6;
+        doc.setTextColor(...bodyTextColor);
         
+        bullets.forEach(bullet => {
+            // Modern bullet point
+            doc.setFillColor(...accentColor);
+            doc.circle(contentX + 3, currentY - 3, 1.5, 'F');
+            
+            // Bullet text with indent
+            const bulletText = doc.splitTextToSize(bullet, contentWidth - contentX - contentIndent);
+            doc.text(bulletText, contentX + contentIndent, currentY);
+            currentY += bulletText.length * 5 + 4;
+        });
+        
+        currentY += entrySpacing;
+        
+        // Sample Experience 2
+        // Timeline dot
+        doc.setFillColor(...accentColor);
+        doc.circle(timelineX, currentY, 4, 'F');
+        
+        // Job title
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
-        doc.setTextColor(60, 60, 100);
-        doc.text("PROJECTS", rightColStart, rightY);
-        rightY += 10;
+        doc.setTextColor(...primaryColor);
+        doc.text("Project Coordinator", contentX, currentY);
         
-        userData.projects.forEach((project, index) => {
-            rightY = checkPageOverflow(rightY, 30);
-            
-            // Project title with modern highlight
-            doc.setFillColor(230, 230, 240);
-            doc.roundedRect(rightColStart, rightY - 4, rightColWidth, 12, 1, 1, 'F');
-            
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.setTextColor(40, 40, 70);
-            doc.text(project.title, rightColStart + 4, rightY + 2);
-            
-            // Project duration aligned right
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
-            const projDateText = `${formatDate(project.start_date)} - ${project.currently_ongoing ? 'Present' : formatDate(project.end_date)}`;
-            doc.text(projDateText, rightColStart + rightColWidth - 4, rightY + 2, { align: 'right' });
-            rightY += 12;
-            
-            // Project description
-            if (project.description) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
-                doc.setTextColor(40, 40, 40);
-                
-                // Convert description to bullet points
-                const projectPoints = project.description
-                    .split('\n')
-                    .filter(point => point.trim().length > 0);
-                
-                const formattedProjectPoints = projectPoints.length > 1 ? 
-                    projectPoints : 
-                    project.description.split('. ')
-                        .filter(s => s.trim().length > 0)
-                        .map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
-                
-                formattedProjectPoints.forEach(point => {
-                    rightY = checkPageOverflow(rightY);
-                    
-                    // Small decorative bullet
-                    doc.setFillColor(180, 180, 200);
-                    doc.circle(rightColStart + 3, rightY - 1.5, 1, 'F');
-                    
-                    const bulletText = doc.splitTextToSize(point.trim(), rightColWidth - 8);
-                    doc.text(bulletText, rightColStart + 7, rightY);
-                    rightY += bulletText.length * 4 + 1;
-                });
-            }
-            
-            // Project technologies
-            if (project.technologies) {
-                rightY = checkPageOverflow(rightY);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                doc.text("Technologies:", rightColStart + 7, rightY);
-                
-                doc.setFont("helvetica", "normal");
-                const techText = Array.isArray(project.technologies) ? 
-                    project.technologies.join(", ") : project.technologies;
-                
-                const techLines = doc.splitTextToSize(techText, rightColWidth - 40);
-                doc.text(techLines, rightColStart + 35, rightY);
-                rightY += techLines.length * 3 + 2;
-            }
-            
-            // Project link
-            if (project.link) {
-                rightY = checkPageOverflow(rightY);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(0, 102, 204); // Link color
-                doc.text(`Link: ${project.link}`, rightColStart + 7, rightY);
-                rightY += 5;
-            }
-            
-            rightY += 8; // Space between projects
-        });
-    }
-    
-    // Add page numbers
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
+        currentY += 8;
+        
+        // Company and location
+        doc.setFont("helvetica", "semibold");
+        doc.setFontSize(10);
+        doc.setTextColor(...accentColor);
+        doc.text("Strategic Ventures | Boston, MA", contentX, currentY);
+        
+        // Date range
+        const dateText2 = "May 2017 - Dec 2019";
+        const dateWidth2 = doc.getStringUnitWidth(dateText2) * 8 * 0.352778;
+        
+        doc.setFillColor(...lightAccent);
+        doc.roundedRect(pageWidth - margin - dateWidth2 - 6, currentY - 7, dateWidth2 + 6, 12, 2, 2, 'F');
+        
         doc.setFont("helvetica", "italic");
         doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        doc.setTextColor(...accentColor);
+        doc.text(dateText2, pageWidth - margin - 3, currentY, {align: 'right'});
+        
+        currentY += 12;
+        
+        // Bullet points
+        const bullets2 = [
+            "Coordinated project activities and resources, ensuring alignment with organizational goals and objectives",
+            "Created detailed reports and presentations for senior management, providing key insights for strategic decision-making",
+            "Collaborated with internal and external stakeholders to optimize project outcomes and enhance customer satisfaction"
+        ];
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...bodyTextColor);
+        
+        bullets2.forEach(bullet => {
+            // Modern bullet point
+            doc.setFillColor(...accentColor);
+            doc.circle(contentX + 3, currentY - 3, 1.5, 'F');
+            
+            // Bullet text with indent
+            const bulletText = doc.splitTextToSize(bullet, contentWidth - contentX - contentIndent);
+            doc.text(bulletText, contentX + contentIndent, currentY);
+            currentY += bulletText.length * 5 + 4;
+        });
+        
+        currentY += entrySpacing;
     }
 }
 // Handle resume generation button click

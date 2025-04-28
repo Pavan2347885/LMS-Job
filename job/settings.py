@@ -28,7 +28,8 @@ DEBUG = True
 import os
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
-ALLOWED_HOSTS = ['lms-job.onrender.com']
+ALLOWED_HOSTS = []
+# 'lms-job.onrender.com'
 
 import os
 
